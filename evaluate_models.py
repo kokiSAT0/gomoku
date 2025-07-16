@@ -6,8 +6,6 @@
     $ python evaluate_models.py
 """
 
-import numpy as np
-import torch
 from pathlib import Path
 from gomoku_env import GomokuEnv
 from agents import (

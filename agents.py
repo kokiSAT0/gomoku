@@ -333,14 +333,40 @@ class PolicyNet(nn.Module):
 
 
 class PolicyAgent:
-    def __init__(self, board_size=9, hidden_size=128, lr=1e-3, gamma=0.99, temp=2.0):
-        """
-        - temp: ソフトマックス温度 (初期値)
+    def __init__(
+        self,
+        board_size=9,
+        hidden_size=128,
+        lr=1e-3,
+        gamma=0.99,
+        temp=2.0,
+        device=None,
+    ):
+        """簡易方策勾配エージェント
+
+        Parameters
+        ----------
+        board_size : int
+            盤面の大きさ
+        hidden_size : int
+            ネットワークの隠れ層ユニット数
+        lr : float
+            学習率
+        gamma : float
+            割引率
+        temp : float
+            ソフトマックス温度の初期値
+        device : str | torch.device | None
+            使用デバイス (``None`` なら自動判定)
         """
         self.board_size = board_size
         self.gamma = gamma
 
-        self.model = PolicyNet(board_size, hidden_size)
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
+
+        self.model = PolicyNet(board_size, hidden_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         # 各ステップの情報を EpisodeStep として蓄積
         self.episode_log: list[EpisodeStep] = []
@@ -357,8 +383,12 @@ class PolicyAgent:
         env: GomokuEnv
         戻り値: action(int)
         """
-        # 1) 盤面をflattenしてテンソル化
-        state_t = torch.tensor(obs.flatten(), dtype=torch.float32).unsqueeze(0)
+        # 1) 盤面をflattenしてテンソル化し、利用デバイスへ転送
+        state_t = (
+            torch.tensor(obs.flatten(), dtype=torch.float32)
+            .unsqueeze(0)
+            .to(self.device)
+        )
 
         # 2) ネットワーク推論
         with torch.no_grad():
@@ -407,6 +437,10 @@ class PolicyAgent:
 
     def _optimize_model(self, states: torch.Tensor, actions: torch.Tensor, returns_t: torch.Tensor) -> None:
         """計算グラフを用いて方策ネットワークを更新する"""
+        states = states.to(self.device)
+        actions = actions.to(self.device)
+        returns_t = returns_t.to(self.device)
+
         logits = self.model(states)
         log_probs = F.log_softmax(logits, dim=1)
         chosen_log_probs = log_probs[range(len(actions)), actions]
@@ -451,7 +485,9 @@ class PolicyAgent:
         torch.save(self.model.state_dict(), path)
 
     def load_model(self, path=MODEL_DIR / "policy_agent.pth"):
-        self.model.load_state_dict(torch.load(path))
+        state_dict = torch.load(path, map_location=self.device)
+        self.model.load_state_dict(state_dict)
+        self.model.to(self.device)
         self.model.eval()
 
 # ----------------------------------------------------

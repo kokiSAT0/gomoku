@@ -200,6 +200,7 @@ def update_with_trajectories(agent, all_episodes):
 
     all_episodes: [episode_log, episode_log, ...]
       ここで episode_log は [(state_tensor, action, reward), (state_tensor, action, reward), ...]
+    agent.device に従いテンソルを GPU / CPU へ転送する。
     """
     import torch
     import torch.nn.functional as F
@@ -225,11 +226,11 @@ def update_with_trajectories(agent, all_episodes):
     if len(all_states) == 0:
         return 0.0  # 何も学習することがなかった場合
 
-    # テンソル化
+    # --- 各エピソードから集めたデータをテンソルに変換しデバイスへ送る ---
     import torch
-    states_tensor = torch.cat(all_states, dim=0)       # shape: (N, board_size*board_size)
-    actions_tensor = torch.tensor(all_actions, dtype=torch.long)  # shape: (N,)
-    returns_tensor = torch.tensor(all_returns, dtype=torch.float32)  # shape: (N,)
+    states_tensor = torch.cat(all_states, dim=0).to(agent.device)
+    actions_tensor = torch.tensor(all_actions, dtype=torch.long).to(agent.device)
+    returns_tensor = torch.tensor(all_returns, dtype=torch.float32).to(agent.device)
 
     logits = agent.model(states_tensor)
     log_probs = F.log_softmax(logits, dim=1)

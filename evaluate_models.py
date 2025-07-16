@@ -23,10 +23,11 @@ def evaluate_model(
     policy_path=MODEL_DIR / "policy_agent_trained.pth",
     opponent_agent=None,
     num_episodes=1000,
-    board_size=9
+    board_size=9,
+    device=None,
 ):
     """
-    保存済みのモデル(PolicyAgent)を読み込み、opponent_agent と複数回対戦させて
+    保存済みのモデル(PolicyAgent)を読み込み、指定した相手と複数回対戦させて
     黒番(PolicyAgent)の勝率を返す。
 
     引数:
@@ -34,12 +35,13 @@ def evaluate_model(
       opponent_agent: 対戦相手(Agentのインスタンス)
       num_episodes: 対戦回数
       board_size: 盤面サイズ
+      device: 使用デバイス ("cuda" / "cpu" など)
 
     戻り値:
       win_rate: 黒番の勝率 (0.0 ~ 1.0)
     """
     # 1) 評価対象のPolicyAgentを読み込み
-    black_agent = PolicyAgent(board_size=board_size)
+    black_agent = PolicyAgent(board_size=board_size, device=device)
     black_agent.load_model(policy_path)  # 事前に学習済みモデルを読み込む
     black_agent.model.eval()  # 評価モード
 

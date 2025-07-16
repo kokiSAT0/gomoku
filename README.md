@@ -11,8 +11,8 @@
 
 仮想環境を利用する場合の例を以下に示します。
 ```bash
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+.venv\Scripts\activate  # source venv/bin/activate
 # requirements.txt を用意しているので以下のコマンド1つで依存ライブラリを
 # まとめてインストールできます
 pip install -r requirements.txt

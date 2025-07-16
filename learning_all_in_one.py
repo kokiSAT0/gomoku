@@ -7,6 +7,7 @@ import random
 import collections
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from utils import moving_average
 
 ########################################################
 # 1) GomokuEnv (五目並べ環境)
@@ -1050,18 +1051,6 @@ def train_agents(
 def plot_results(rew_b, rew_w, winners, turns, title="Training Results"):
     n = len(rew_b)
     window = max(1, n // 50)
-
-    def moving_average(data, w):
-        ret = []
-        s = 0.0
-        for i in range(len(data)):
-            s += data[i]
-            if i >= w:
-                s -= data[i-w]
-                ret.append(s/w)
-            else:
-                ret.append(s/(i+1))
-        return ret
 
     ma_rb = moving_average(rew_b, window)
     ma_rw = moving_average(rew_w, window)

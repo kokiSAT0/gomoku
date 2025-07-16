@@ -213,6 +213,16 @@ class GomokuEnv:
         self.winner = 0
         self.turn_count = 0
         return self._get_observation()
+
+    def action_to_coord(self, action: int) -> tuple[int, int]:
+        """action 番号を ``(x, y)`` へ変換するヘルパー"""
+        x = action // self.board_size
+        y = action % self.board_size
+        return x, y
+
+    def coord_to_action(self, x: int, y: int) -> int:
+        """``(x, y)`` 座標を action 番号に変換"""
+        return x * self.board_size + y
     
     def can_place_stone(self, x, y):
         """
@@ -242,9 +252,9 @@ class GomokuEnv:
 
     def step(self, action):
         """
-        action は 0 ~ (board_size * board_size - 1) の整数。
-        これを (x, y) = (action // board_size, action % board_size) として打つ。
-        戻り値: (obs, reward, done, info)
+        ``action`` は ``0`` から ``board_size**2 - 1`` の整数。
+        ``action_to_coord()`` を使って座標 ``(x, y)`` に変換し着手する。
+        戻り値: ``(obs, reward, done, info)``
         """
         if self.done:
             # 既に終わっている場合、報酬0で終了状態を返す
@@ -259,8 +269,7 @@ class GomokuEnv:
         before_opp = count_chains_open_ends(self.game.board, opponent)
 
         # 座標に変換
-        x = action // self.board_size
-        y = action % self.board_size
+        x, y = self.action_to_coord(action)
 
         # 無効手チェック
         if not self.can_place_stone(x, y):
@@ -372,7 +381,7 @@ def get_valid_actions(obs, env):
     for x in range(board_size):
         for y in range(board_size):
             if env.can_place_stone(x, y):
-                valid_actions.append(x * board_size + y)
+                valid_actions.append(env.coord_to_action(x, y))
     return valid_actions
 
 # ----------------------------------------------------
@@ -618,8 +627,8 @@ class LongestChainAgent:
         directions = [(1,0),(0,1),(1,1),(1,-1)]
 
         for a in valid_actions:
-            x = a // env.board_size
-            y = a % env.board_size
+            # action 番号を座標へ変換
+            x, y = env.action_to_coord(a)
             # 仮置き
             obs[x,y] = current_player
             score = self.get_longest_chain(obs, x, y, current_player, directions)

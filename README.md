@@ -7,13 +7,15 @@
 ## 環境準備
 
 - Python 3.10 以上 (開発用コンテナでは 3.12 系を使用)
-- 必要ライブラリ: numpy, torch, pygame, tqdm, matplotlib
+- 必要ライブラリ: numpy, torch, pygame, tqdm, matplotlib, seaborn
 
 仮想環境を利用する場合の例を以下に示します。
 ```bash
 python -m venv venv
 source venv/bin/activate
-pip install numpy torch pygame tqdm matplotlib
+# requirements.txt を用意しているので以下のコマンド1つで依存ライブラリを
+# まとめてインストールできます
+pip install -r requirements.txt
 ```
 
 ## ファイル構成

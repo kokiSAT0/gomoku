@@ -2,6 +2,7 @@
 """汎用的なユーティリティ関数をまとめたモジュール"""
 
 from typing import Sequence, List
+import numpy as np
 
 
 def moving_average(data: Sequence[float], window: int) -> List[float]:
@@ -12,27 +13,40 @@ def moving_average(data: Sequence[float], window: int) -> List[float]:
     data : Sequence[float]
         計算対象となる数値列。
     window : int
-        移動平均の窓幅。
+        移動平均の窓幅。正の整数でなければならない。
 
     Returns
     -------
     List[float]
         ``data`` と同じ長さの移動平均列を返す。
     """
-    # 返却用のリスト
-    result: List[float] = []
-    # 累積和を保持
-    acc = 0.0
-    for i, v in enumerate(data):
-        acc += v
-        if i >= window:
-            # 窓を一つ後ろへずらす
-            acc -= data[i - window]
-            result.append(acc / window)
-        else:
-            # 要素数がまだ window 未満ならその時点での平均を使う
-            result.append(acc / (i + 1))
-    return result
+
+    if window <= 0:
+        raise ValueError("window must be positive")
+
+    # Pythonのリストなどを numpy 配列へ変換
+    arr = np.asarray(data, dtype=float)
+    n = arr.size
+    if n == 0:
+        return []
+
+    # 累積和(cumsum)を利用して計算量を削減
+    cumsum = np.cumsum(arr)
+    # 結果格納用の配列を用意
+    result = np.empty(n, dtype=float)
+
+    if n <= window:
+        # シンプルに先頭からの平均のみ
+        result[:] = cumsum / (np.arange(n) + 1)
+        return result.tolist()
+
+    # まず先頭 window 要素分は部分平均
+    result[:window] = cumsum[:window] / (np.arange(window) + 1)
+
+    # 以降は前後差分で window 長の和を求めて平均
+    result[window:] = (cumsum[window:] - cumsum[:-window]) / window
+
+    return result.tolist()
 
 
 def opponent_player(player: int) -> int:

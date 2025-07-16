@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 from gomoku_env import GomokuEnv
+from utils import moving_average
 from agents import (
     PolicyAgent,
     QAgent,
@@ -302,18 +303,6 @@ def plot_results(rew_b, rew_w, winners, turns, title="SelfPlay"):
 
     n = len(rew_b)
     window = max(1, n // 50)
-
-    def moving_average(data, w):
-        ret = []
-        s = 0.0
-        for i in range(len(data)):
-            s += data[i]
-            if i >= w:
-                s -= data[i-w]
-                ret.append(s/w)
-            else:
-                ret.append(s/(i+1))
-        return ret
 
     ma_rb = moving_average(rew_b, window)
     ma_rw = moving_average(rew_w, window)

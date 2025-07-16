@@ -240,6 +240,40 @@ class GomokuEnv:
 
         return True
 
+    def _calc_chain_reward(self, before, after, table):
+        """連数の変化に応じた報酬を計算するヘルパー"""
+        reward = 0.0
+        for length in [2, 3, 4]:
+            for open_type in ["open2", "open1"]:
+                diff = after[length][open_type] - before[length][open_type]
+                if diff > 0:
+                    reward += diff * table[length][open_type]
+        return reward
+
+    def _calculate_intermediate_reward(
+        self,
+        current_player: int,
+        opponent: int,
+        before_self: dict,
+        before_opp: dict,
+    ) -> float:
+        """石を置いたあとの中間報酬を計算する"""
+        after_self = count_chains_open_ends(self.game.board, current_player)
+        after_opp = count_chains_open_ends(self.game.board, opponent)
+
+        reward = self._calc_chain_reward(before_self, after_self, self.r_chain)
+        reward += self._calc_chain_reward(after_opp, before_opp, self.r_block)
+
+        return reward
+
+    def _final_reward(self, winner: int, current_player: int) -> float:
+        """勝敗に基づく最終報酬を返す"""
+        if winner == 1:
+            return 1.0 if current_player == 1 else -1.0
+        if winner == 2:
+            return 1.0 if current_player == 2 else -1.0
+        return 0.0
+
     def step(self, action):
         """
         action は 0 ~ (board_size * board_size - 1) の整数。
@@ -278,40 +312,22 @@ class GomokuEnv:
         winner = self.game.check_winner()
         reward_final = 0.0
         if winner != 0:
-            # 勝ち(1 or 2) or 引き分け(-1)
+            # 勝ち(1 or 2) または引き分け(-1)
             self.done = True
             self.winner = winner
-            if winner == 1:
-                # 黒勝ち → 打ったのが黒なら +1.0, 白なら -1.0
-                reward_final = 1.0 if current_player == 1 else -1.0
-            elif winner == 2:
-                # 白勝ち → 打ったのが白なら +1.0, 黒なら -1.0
-                reward_final = 1.0 if current_player == 2 else -1.0
-            else:
-                # 引き分け(-1) の場合
-                reward_final = 0.0
+            reward_final = self._final_reward(winner, current_player)
         else:
             self.done = False
 
         # 中間報酬(連の増減)
         reward_intermediate = 0.0
         if not self.done:
-            after_self = count_chains_open_ends(self.game.board, current_player)
-            after_opp = count_chains_open_ends(self.game.board, opponent)
-
-            # 自分の 2連/3連/4連 が増えたら加点
-            for length in [2, 3, 4]:
-                for open_type in ['open2', 'open1']:
-                    diff = after_self[length][open_type] - before_self[length][open_type]
-                    if diff > 0:
-                        reward_intermediate += diff * self.r_chain[length][open_type]
-
-            # 相手の 2連/3連/4連 が減ったら加点 (ブロック報酬)
-            for length in [2, 3, 4]:
-                for open_type in ['open2', 'open1']:
-                    diff = before_opp[length][open_type] - after_opp[length][open_type]
-                    if diff > 0:
-                        reward_intermediate += diff * self.r_block[length][open_type]
+            reward_intermediate = self._calculate_intermediate_reward(
+                current_player,
+                opponent,
+                before_self,
+                before_opp,
+            )
 
         total_reward = reward_final + reward_intermediate
 

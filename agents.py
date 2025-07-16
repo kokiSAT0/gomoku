@@ -297,6 +297,10 @@ class LongestChainAgent:
     def record_transition(self, s, a, r, s_next, done):
         """このエージェントでは未使用"""
         pass
+    def record_reward(self, r):
+        """このエージェントでは未使用"""
+        pass
+
 
     def finish_episode(self):
         """このエージェントでは未使用"""

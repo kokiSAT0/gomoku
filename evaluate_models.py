@@ -25,10 +25,11 @@ def evaluate_model(
     num_episodes=1000,
     board_size=9,
     device=None,
+    policy_color="black",
 ):
     """
-    保存済みのモデル(PolicyAgent)を読み込み、指定した相手と複数回対戦させて
-    黒番(PolicyAgent)の勝率を返す。
+    保存済みモデル(PolicyAgent)を読み込み、指定した相手と複数回対戦させて
+    PolicyAgent の勝率を返す。``policy_color`` で先手/後手を指定できる。
 
     引数:
       policy_path: 保存済みモデルのパス
@@ -36,14 +37,15 @@ def evaluate_model(
       num_episodes: 対戦回数
       board_size: 盤面サイズ
       device: 使用デバイス ("cuda" / "cpu" など)
+      policy_color: "black" なら先手、"white" なら後手として評価
 
     戻り値:
-      win_rate: 黒番の勝率 (0.0 ~ 1.0)
+      win_rate: PolicyAgent の勝率 (0.0 ~ 1.0)
     """
     # 1) 評価対象のPolicyAgentを読み込み
-    black_agent = PolicyAgent(board_size=board_size, device=device)
-    black_agent.load_model(policy_path)  # 事前に学習済みモデルを読み込む
-    black_agent.model.eval()  # 評価モード
+    policy_agent = PolicyAgent(board_size=board_size, device=device)
+    policy_agent.load_model(policy_path)  # 事前に学習済みモデルを読み込む
+    policy_agent.model.eval()  # 評価モード
 
     # 2) 対戦相手を用意 (引数で与えられなければ RandomAgent とする)
     if opponent_agent is None:
@@ -60,26 +62,43 @@ def evaluate_model(
         done = False
 
         while not done:
-            if env.current_player == 1:  # 黒番(PolicyAgent)
-                action = black_agent.get_action(obs, env)
-            else:  # 白番(対戦相手)
-                action = opponent_agent.get_action(obs, env)
+            if env.current_player == 1:
+                # 先手の手番
+                if policy_color == "black":
+                    action = policy_agent.get_action(obs, env)
+                else:
+                    action = opponent_agent.get_action(obs, env)
+            else:
+                # 後手の手番
+                if policy_color == "white":
+                    action = policy_agent.get_action(obs, env)
+                else:
+                    action = opponent_agent.get_action(obs, env)
 
             obs, reward, done, info = env.step(action)
 
-        # 対局終了後に勝敗を確認
+        # 対局終了後に勝敗を確認 (policy_agent 視点)
         winner = info["winner"]
-        if winner == 1:   # 黒番勝利
-            wins += 1
-        elif winner == 2: # 白番勝利
-            losses += 1
-        else:             # 引き分け
-            draws += 1
+        if policy_color == "black":
+            if winner == 1:
+                wins += 1
+            elif winner == 2:
+                losses += 1
+            else:
+                draws += 1
+        else:  # policy_color == "white"
+            if winner == 2:
+                wins += 1
+            elif winner == 1:
+                losses += 1
+            else:
+                draws += 1
 
     # 4) 成績表示
     win_rate = wins / num_episodes
     print(f"対戦回数: {num_episodes}")
-    print(f"黒番(PolicyAgent) 勝ち: {wins}, 負け: {losses}, 引き分け: {draws}")
+    color_label = "先手" if policy_color == "black" else "後手"
+    print(f"{color_label}(PolicyAgent) 勝ち: {wins}, 負け: {losses}, 引き分け: {draws}")
     print(f"勝率: {win_rate:.2f}")
 
     return win_rate

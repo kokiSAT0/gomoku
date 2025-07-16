@@ -17,7 +17,8 @@ from agents import (
     RandomAgent,
     ImmediateWinBlockAgent,
     FourThreePriorityAgent,
-    LongestChainAgent
+    LongestChainAgent,
+    EpisodeStep
 )
 
 def play_one_episode(env, agent_black, agent_white):
@@ -199,7 +200,8 @@ def update_with_trajectories(agent, all_episodes):
     REINFORCEにより学習を行うための処理。
 
     all_episodes: [episode_log, episode_log, ...]
-      ここで episode_log は [(state_tensor, action, reward), (state_tensor, action, reward), ...]
+      episode_log は EpisodeStep のリストまたは
+      (state_tensor, action, reward) タプルのリストを想定する。
     agent.device に従いテンソルを GPU / CPU へ転送する。
     """
     import torch
@@ -211,17 +213,27 @@ def update_with_trajectories(agent, all_episodes):
 
     # 各エピソードごとに割引報酬和を計算
     for episode_log in all_episodes:
+        # EpisodeStep オブジェクトかタプルかを判定
+        if not episode_log:
+            continue
+
+        is_obj = isinstance(episode_log[0], EpisodeStep)
+
+        # --- 割引報酬和の計算 ---
         G = 0.0
         returns = []
-        for i in reversed(range(len(episode_log))):
-            _, _, r = episode_log[i]
+        rewards = [step.reward if is_obj else step[2] for step in episode_log]
+        for r in reversed(rewards):
             G = agent.gamma * G + r
             returns.insert(0, G)
 
-        for i, (s, a, _) in enumerate(episode_log):
+        # --- 状態・行動・報酬をそれぞれリストへ追加 ---
+        for idx, step in enumerate(episode_log):
+            s = step.state if is_obj else step[0]
+            a = step.action if is_obj else step[1]
             all_states.append(s)
             all_actions.append(a)
-            all_returns.append(returns[i])
+            all_returns.append(returns[idx])
 
     if len(all_states) == 0:
         return 0.0  # 何も学習することがなかった場合

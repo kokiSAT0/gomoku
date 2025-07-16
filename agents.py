@@ -112,15 +112,19 @@ class RandomAgent:
         return random.choice(valid_actions)
 
     def record_transition(self, s, a, r, s_next, done):
+        """このエージェントでは未使用"""
         pass
 
     def finish_episode(self):
+        """このエージェントでは未使用"""
         pass
 
     def save_model(self, path=MODEL_DIR / "random_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
     def load_model(self, path=MODEL_DIR / "random_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
 
@@ -158,15 +162,19 @@ class ImmediateWinBlockAgent:
 
 
     def record_transition(self, s, a, r, s_next, done):
+        """このエージェントでは未使用"""
         pass
 
     def finish_episode(self):
+        """このエージェントでは未使用"""
         pass
 
     def save_model(self, path=MODEL_DIR / "immediate_win_block_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
     def load_model(self, path=MODEL_DIR / "immediate_win_block_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
 
@@ -211,15 +219,19 @@ class FourThreePriorityAgent:
 
 
     def record_transition(self, s, a, r, s_next, done):
+        """このエージェントでは未使用"""
         pass
 
     def finish_episode(self):
+        """このエージェントでは未使用"""
         pass
 
     def save_model(self, path=MODEL_DIR / "four_three_priority_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
     def load_model(self, path=MODEL_DIR / "four_three_priority_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
 
@@ -266,15 +278,19 @@ class LongestChainAgent:
         return score
 
     def record_transition(self, s, a, r, s_next, done):
+        """このエージェントでは未使用"""
         pass
 
     def finish_episode(self):
+        """このエージェントでは未使用"""
         pass
 
     def save_model(self, path=MODEL_DIR / "longest_chain_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
     def load_model(self, path=MODEL_DIR / "longest_chain_agent.pth"):
+        """このエージェントでは未使用"""
         pass
 
 
@@ -520,6 +536,7 @@ class QAgent:
         self.optimizer.step()
 
     def finish_episode(self):
+        """このエージェントでは未使用"""
         pass
 
     def save_model(self, path=MODEL_DIR / "q_agent.pth"):

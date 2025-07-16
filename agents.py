@@ -145,6 +145,11 @@ def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value:
 # ランダムエージェント (学習しない)
 # ----------------------------------------------------
 class RandomAgent:
+    """
+    ランダムに着手するだけの単純なエージェント。
+
+    学習は一切行わず、合法手の中からランダムに行動を選択する。
+    """
     def __init__(self):
         pass
 
@@ -488,14 +493,20 @@ class ReplayBuffer:
         self.buffer.append(Transition(s, a, r, s_next, done))
 
     def sample(self, batch_size: int):
-        """ランダムに ``batch_size`` 件取り出し配列にまとめて返す"""
+        """ランダムに ``batch_size`` 件取り出し NumPy 配列として返す"""
+
+        # random.sample() で ``batch_size`` 件ランダムに取り出す
         batch = random.sample(self.buffer, batch_size)
 
-        states = np.array([t.state for t in batch], dtype=object)
-        actions = np.array([t.action for t in batch])
-        rewards = np.array([t.reward for t in batch])
-        next_states = np.array([t.next_state for t in batch], dtype=object)
-        dones = np.array([t.done for t in batch])
+        # 盤面状態はそのまま stack して (batch, board, board) の形にする
+        # dtype を明示することで計算時の型変換を防ぐ
+        states = np.stack([t.state for t in batch]).astype(np.float32)
+        next_states = np.stack([t.next_state for t in batch]).astype(np.float32)
+
+        # 行動、報酬、終了フラグも同様に numpy 配列化
+        actions = np.array([t.action for t in batch], dtype=np.int64)
+        rewards = np.array([t.reward for t in batch], dtype=np.float32)
+        dones = np.array([t.done for t in batch], dtype=np.float32)
 
         return states, actions, rewards, next_states, dones
 
@@ -562,9 +573,10 @@ class QAgent:
     def train_on_batch(self):
         s, a, r, s_next, d = self.buffer.sample(self.batch_size)
 
-        # ReplayBuffer.sample() で numpy.array を受け取るのでそのまま利用
-        states_np = np.array([arr.flatten() for arr in s], dtype=np.float32)
-        next_states_np = np.array([arr.flatten() for arr in s_next], dtype=np.float32)
+        # ReplayBuffer.sample() からは既に float32 の numpy 配列が返る
+        # (batch, board, board) -> 学習では (batch, board^2) の形に変換
+        states_np = s.reshape(self.batch_size, -1)
+        next_states_np = s_next.reshape(self.batch_size, -1)
 
         states_t = torch.from_numpy(states_np)
         actions_t = torch.tensor(a, dtype=torch.long)

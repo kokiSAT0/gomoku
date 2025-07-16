@@ -361,13 +361,22 @@ class GomokuEnv:
 
     def _is_adjacent_to_stone(self, x, y, rng):
         """
-        盤上の任意の石とのチェビシェフ距離が rng 以内なら True。
-        rng=1 であれば、(x±1,y±1) 含む周囲1マス以内に石があれば True。
+        盤上の任意の石とのチェビシェフ距離が ``rng`` 以内にあるかを判定する。
+
+        ``rng=1`` の場合は ``(x±1, y±1)`` を含む周囲 1 マスを調べることになる。
+        より効率的にするため、盤面全体を走査するのではなく該当範囲の
+        サブ配列を切り出して確認する。
         """
+
         board = self.game.board
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                if board[i, j] != 0:
-                    if abs(i - x) <= rng and abs(j - y) <= rng:
-                        return True
-        return False
+
+        # --- チェビシェフ距離 rng 以内の範囲を計算 ---------------------
+        # 範囲外に出ないよう max/min でクリップする
+        x_min = max(x - rng, 0)
+        x_max = min(x + rng + 1, self.board_size)
+        y_min = max(y - rng, 0)
+        y_max = min(y + rng + 1, self.board_size)
+
+        # --- 部分盤面に石が存在するかを numpy で一気に判定 --------------
+        sub_board = board[x_min:x_max, y_min:y_max]
+        return np.any(sub_board != 0)

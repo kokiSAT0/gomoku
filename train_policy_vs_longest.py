@@ -18,6 +18,21 @@ from parallel_train import train_master
 # モデル保存用ディレクトリ
 MODEL_DIR = Path(__file__).resolve().parent / "models"
 
+# -----------------------------------------------
+# 3連や4連をブロックした時に高めの報酬を与える
+# 環境設定ディクショナリ
+# -----------------------------------------------
+ENV_PARAMS = {
+    # 両端が空いている四連をブロックした場合の報酬
+    "reward_block_4_open2": 1.5,
+    # 片端のみ空いている四連をブロックした場合の報酬
+    "reward_block_4_open1": 1.0,
+    # 両端が空いている三連をブロックした場合の報酬
+    "reward_block_3_open2": 0.8,
+    # 片端のみ空いている三連をブロックした場合の報酬
+    "reward_block_3_open1": 0.5,
+}
+
 
 def main():
     """コマンドライン引数を受け取って学習を実行する"""
@@ -53,6 +68,7 @@ def main():
             agent_params=agent_params,
             opponent_class=LongestChainAgent,
             policy_color=policy_color,
+            env_params=ENV_PARAMS,
         )
         if policy_color == "black":
             rewards_b = rewards_p
@@ -62,7 +78,8 @@ def main():
             rewards_b = [-r if r != 0 else 0 for r in rewards_p]
     else:
         # 単一プロセスでの学習
-        env = GomokuEnv(board_size=board_size)
+        # ブロック報酬を組み込んだ環境を生成
+        env = GomokuEnv(board_size=board_size, **ENV_PARAMS)
         if policy_color == "black":
             black_agent = PolicyAgent(board_size=board_size, device=device)
             white_agent = LongestChainAgent()

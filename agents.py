@@ -9,6 +9,11 @@ import torch.nn.functional as F
 import collections
 
 # ----------------------------------------------------
+# 連をチェックする際に利用する方向のリスト
+# ----------------------------------------------------
+DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
+# ----------------------------------------------------
 # 有効手(空マス)を列挙する関数
 # ----------------------------------------------------
 def get_valid_actions(obs, env):
@@ -46,7 +51,7 @@ def get_valid_actions(obs, env):
 
     return valid_actions
 
-def longest_chain_length(obs, x, y, player, directions):
+def longest_chain_length(obs, x, y, player, directions=DIRECTIONS):
     """指定座標に石を置いたと仮定したときの最長連結長を返すヘルパー"""
     board_size = obs.shape[0]
     max_len = 1
@@ -68,9 +73,26 @@ def longest_chain_length(obs, x, y, player, directions):
             max_len = count
     return max_len
 
-def has_n_in_a_row(obs, x, y, player, directions, n):
+def has_n_in_a_row(obs, x, y, player, n, directions=DIRECTIONS):
     """n連以上が成立するかどうかを判定"""
     return longest_chain_length(obs, x, y, player, directions) >= n
+
+
+def find_chain_move(obs, valid_actions, player, n, directions=DIRECTIONS):
+    """n連を作れる着手を探して返す。存在しなければNone"""
+    board_size = obs.shape[0]
+    for a in valid_actions:
+        x = a // board_size
+        y = a % board_size
+
+        # 仮に石を置いてn連が成立するか確認
+        obs[x, y] = player
+        if has_n_in_a_row(obs, x, y, player, n, directions):
+            obs[x, y] = 0
+            return a
+        obs[x, y] = 0
+
+    return None
 
 # ----------------------------------------------------
 # ランダムエージェント (学習しない)
@@ -109,7 +131,6 @@ class ImmediateWinBlockAgent:
         pass
 
     def get_action(self, obs, env):
-        board_size = obs.shape[0]
         current_player = env.current_player
         opponent = 1 if current_player == 2 else 2
 
@@ -118,35 +139,18 @@ class ImmediateWinBlockAgent:
             return 0
 
         # 1) 自分が置けば5連になるか？
-        move = self.find_winning_move(obs, valid_actions, current_player)
+        move = find_chain_move(obs, valid_actions, current_player, 5)
         if move is not None:
             return move
 
         # 2) 相手が次手で5連できるならブロック
-        move = self.find_winning_move(obs, valid_actions, opponent)
+        move = find_chain_move(obs, valid_actions, opponent, 5)
         if move is not None:
             return move
 
         # 3) 上記がなければランダム
         return random.choice(valid_actions)
 
-    def find_winning_move(self, obs, valid_actions, player):
-        board_size = obs.shape[0]
-        directions = [(1,0),(0,1),(1,1),(1,-1)]
-        for a in valid_actions:
-            x = a // board_size
-            y = a % board_size
-            # 仮置き
-            obs[x,y] = player
-            if self.check_5_in_a_row(obs, x, y, player, directions):
-                obs[x,y] = 0
-                return a
-            obs[x,y] = 0
-        return None
-
-    def check_5_in_a_row(self, obs, x, y, player, directions):
-        """5連になるかどうかをヘルパーで判定"""
-        return has_n_in_a_row(obs, x, y, player, directions, 5)
 
     def record_transition(self, s, a, r, s_next, done):
         pass
@@ -169,7 +173,6 @@ class FourThreePriorityAgent:
         pass
 
     def get_action(self, obs, env):
-        board_size = obs.shape[0]
         current_player = env.current_player
         opponent = 1 if current_player == 2 else 2
 
@@ -178,44 +181,28 @@ class FourThreePriorityAgent:
             return 0
 
         # 1) 自分の4連が完成する手
-        a = self.find_n_chain(obs, valid_actions, current_player, 4)
+        a = find_chain_move(obs, valid_actions, current_player, 4)
         if a is not None:
             return a
 
         # 2) 相手の4連ブロック
-        a = self.find_n_chain(obs, valid_actions, opponent, 4)
+        a = find_chain_move(obs, valid_actions, opponent, 4)
         if a is not None:
             return a
 
         # 3) 自分の3連が完成する手
-        a = self.find_n_chain(obs, valid_actions, current_player, 3)
+        a = find_chain_move(obs, valid_actions, current_player, 3)
         if a is not None:
             return a
 
         # 4) 相手の3連ブロック
-        a = self.find_n_chain(obs, valid_actions, opponent, 3)
+        a = find_chain_move(obs, valid_actions, opponent, 3)
         if a is not None:
             return a
 
         # 5) ランダム
         return random.choice(valid_actions)
 
-    def find_n_chain(self, obs, valid_actions, player, n):
-        board_size = obs.shape[0]
-        directions = [(1,0),(0,1),(1,1),(1,-1)]
-        for a in valid_actions:
-            x = a // board_size
-            y = a % board_size
-            obs[x,y] = player
-            if self.check_n_chain(obs, x, y, player, directions, n):
-                obs[x,y] = 0
-                return a
-            obs[x,y] = 0
-        return None
-
-    def check_n_chain(self, obs, x, y, player, directions, n):
-        """n連以上になるかを判定"""
-        return has_n_in_a_row(obs, x, y, player, directions, n)
 
     def record_transition(self, s, a, r, s_next, done):
         pass
@@ -234,9 +221,6 @@ class LongestChainAgent:
     """
     盤上に仮置きしたとき最も長い連が得られる手を選択するヒューリスティックエージェント。
     """
-
-    # 各方向をクラス変数として保持しておく
-    DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
 
     def __init__(self):
         # 特別な内部状態は持たない
@@ -271,7 +255,7 @@ class LongestChainAgent:
     def _evaluate_move(self, obs, x, y, player):
         """石を一時的に置いて連の長さを計算するヘルパー"""
         obs[x, y] = player
-        score = longest_chain_length(obs, x, y, player, self.DIRECTIONS)
+        score = longest_chain_length(obs, x, y, player)
         obs[x, y] = 0
         return score
 

@@ -7,6 +7,18 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import collections
+from dataclasses import dataclass
+
+
+@dataclass
+class Transition:
+    """経験再生バッファに保存する1ステップ分の遷移データ"""
+
+    state: np.ndarray
+    action: int
+    reward: float
+    next_state: np.ndarray
+    done: bool
 
 # ----------------------------------------------------
 # 連をチェックする際に利用する方向のリスト
@@ -426,19 +438,26 @@ class QNet(nn.Module):
 class ReplayBuffer:
     """経験再生用のシンプルなバッファ"""
 
-    def __init__(self, capacity=10000):
-        # deque を用いて容量を超えると古いデータから自動で捨てる
-        self.buffer = collections.deque(maxlen=capacity)
+    def __init__(self, capacity: int = 10000) -> None:
+        # deque は最大長を超えると古いデータから捨ててくれる
+        self.buffer: collections.deque[Transition] = collections.deque(maxlen=capacity)
 
-    def push(self, s, a, r, s_next, done):
+    def push(self, s: np.ndarray, a: int, r: float, s_next: np.ndarray, done: bool) -> None:
         """1ステップ分の遷移を保存"""
-        self.buffer.append((s, a, r, s_next, done))
+        # Transition dataclass にまとめて保持
+        self.buffer.append(Transition(s, a, r, s_next, done))
 
-    def sample(self, batch_size):
-        """ランダムに batch_size 件取り出し numpy.array として返す"""
+    def sample(self, batch_size: int):
+        """ランダムに ``batch_size`` 件取り出し配列にまとめて返す"""
         batch = random.sample(self.buffer, batch_size)
-        s, a, r, s_next, d = map(np.array, zip(*batch))
-        return s, a, r, s_next, d
+
+        states = np.array([t.state for t in batch], dtype=object)
+        actions = np.array([t.action for t in batch])
+        rewards = np.array([t.reward for t in batch])
+        next_states = np.array([t.next_state for t in batch], dtype=object)
+        dones = np.array([t.done for t in batch])
+
+        return states, actions, rewards, next_states, dones
 
     def __len__(self):
         return len(self.buffer)

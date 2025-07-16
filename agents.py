@@ -22,6 +22,15 @@ class Transition:
     next_state: np.ndarray
     done: bool
 
+
+@dataclass
+class EpisodeStep:
+    """PolicyAgentの1ステップ分の情報を保持するデータクラス"""
+
+    state: torch.Tensor  # 盤面状態 (flatten 済みテンソル)
+    action: int          # 選択した行動
+    reward: float        # その行動で得た報酬
+
 # ----------------------------------------------------
 # 連をチェックする際に利用する方向のリスト
 # ----------------------------------------------------
@@ -339,7 +348,8 @@ class PolicyAgent:
 
         self.model = PolicyNet(board_size, hidden_size)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        self.episode_log = []  # [ [state_t, action, reward], ... ]
+        # 各ステップの情報を EpisodeStep として蓄積
+        self.episode_log: list[EpisodeStep] = []
 
         self.temp = temp       # 初期温度
         self.min_temp = 0.5    # 温度の下限値など (必要に応じて調整)
@@ -375,7 +385,7 @@ class PolicyAgent:
         action = np.random.choice(len(probs), p=probs)
 
         # 5) エピソードログに記録 (最初は報酬=0.0)
-        self.episode_log.append([state_t, action, 0.0])
+        self.episode_log.append(EpisodeStep(state=state_t, action=action, reward=0.0))
         return action
 
     def record_transition(self, s, a, r, s_next, done):
@@ -387,7 +397,29 @@ class PolicyAgent:
     def record_reward(self, reward):
         """直近行動の報酬を上書き"""
         if self.episode_log:
-            self.episode_log[-1][2] = reward
+            # dataclass のフィールドを更新
+            self.episode_log[-1].reward = reward
+
+    def _calc_returns(self) -> torch.Tensor:
+        """エピソードログから割引報酬和を計算してテンソルを返す"""
+        returns = []
+        G = 0.0
+        for step in reversed(self.episode_log):
+            G = step.reward + self.gamma * G
+            returns.append(G)
+        returns.reverse()
+        return torch.tensor(returns, dtype=torch.float32)
+
+    def _optimize_model(self, states: torch.Tensor, actions: torch.Tensor, returns_t: torch.Tensor) -> None:
+        """計算グラフを用いて方策ネットワークを更新する"""
+        logits = self.model(states)
+        log_probs = F.log_softmax(logits, dim=1)
+        chosen_log_probs = log_probs[range(len(actions)), actions]
+        loss = - (returns_t * chosen_log_probs).mean()
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
     def finish_episode(self):
         """
@@ -395,36 +427,20 @@ class PolicyAgent:
         """
         if len(self.episode_log) == 0:
             return
+        # 1) 割引報酬和の計算
+        returns_t = self._calc_returns()
 
-        # 1) 割引報酬和を後ろから計算
-        returns = []
-        G = 0.0
-        for i in reversed(range(len(self.episode_log))):
-            G = self.episode_log[i][2] + self.gamma * G
-            returns.insert(0, G)
+        # 2) 学習に使うテンソルへ変換
+        states = torch.cat([step.state for step in self.episode_log], dim=0)
+        actions = torch.tensor([step.action for step in self.episode_log], dtype=torch.long)
 
-        # 2) データ整形
-        states = torch.cat([x[0] for x in self.episode_log], dim=0)  # (T, board_size^2)
-        actions = torch.tensor([x[1] for x in self.episode_log], dtype=torch.long)
-        returns_t = torch.tensor(returns, dtype=torch.float32)
+        # 3) 方策ネットワークを更新
+        self._optimize_model(states, actions, returns_t)
 
-        # 3) 順伝播して log_prob を計算
-        logits = self.model(states)
-        log_probs = F.log_softmax(logits, dim=1)    # (T, board_size^2)
-        chosen_log_probs = log_probs[range(len(actions)), actions]
-
-        # 4) REINFORCE損失 = - (returns * log_probs).mean()
-        loss = - (returns_t * chosen_log_probs).mean()
-
-        # 5) 学習更新
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        # 6) バッファ初期化
+        # 4) バッファ初期化
         self.episode_log = []
 
-        # 7) エピソード毎に温度を下げる(任意)
+        # 5) エピソード毎に温度を下げる(任意)
         self.episode_count += 1
         self.update_temperature()
 

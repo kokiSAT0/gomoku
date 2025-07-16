@@ -27,7 +27,7 @@ def main():
     )
     parser.add_argument("--episodes", type=int, default=1000, help="学習エピソード数")
     parser.add_argument("--board-size", type=int, default=9, help="盤面サイズ")
-    parser.add_argument("--num-workers", type=int, default=1, help="並列ワーカー数")
+    parser.add_argument("--num-workers", type=int, default=10, help="並列ワーカー数")
     parser.add_argument("--device", default=None, help="使用デバイス(cuda/cpu)")
     args = parser.parse_args()
 

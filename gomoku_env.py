@@ -1,5 +1,43 @@
 import numpy as np
 
+
+def _scan_chain_open_end(
+    board: np.ndarray,
+    x: int,
+    y: int,
+    dx: int,
+    dy: int,
+    player: int,
+):
+    """指定座標から1方向に伸びる連の長さと両端の空き状況を返すヘルパー"""
+
+    board_size = board.shape[0]
+
+    # 逆方向に同じ色の石がある場合、ここは連の始点ではない
+    prev_x, prev_y = x - dx, y - dy
+    if 0 <= prev_x < board_size and 0 <= prev_y < board_size:
+        if board[prev_x, prev_y] == player:
+            return 0, 0
+
+    # (x, y) から (dx, dy) 方向に連を伸ばす
+    length = 1
+    cx, cy = x + dx, y + dy
+    while 0 <= cx < board_size and 0 <= cy < board_size and board[cx, cy] == player:
+        length += 1
+        cx += dx
+        cy += dy
+
+    # 両端が空いているかを確認
+    open_ends = 0
+    if 0 <= prev_x < board_size and 0 <= prev_y < board_size:
+        if board[prev_x, prev_y] == 0:
+            open_ends += 1
+    if 0 <= cx < board_size and 0 <= cy < board_size:
+        if board[cx, cy] == 0:
+            open_ends += 1
+
+    return length, open_ends
+
 def count_chains_open_ends(board: np.ndarray, player: int):
     """
     board上で指定playerの
@@ -30,32 +68,9 @@ def count_chains_open_ends(board: np.ndarray, player: int):
                 continue
 
             for dx, dy in directions:
-                # 逆方向に同じプレイヤーの石があるなら「連の開始点」ではないのでスキップ
-                prev_x, prev_y = x - dx, y - dy
-                if 0 <= prev_x < board_size and 0 <= prev_y < board_size:
-                    if board[prev_x, prev_y] == player:
-                        continue
+                length, open_ends = _scan_chain_open_end(board, x, y, dx, dy, player)
 
-                # (x, y)から(dx, dy)方向に連がいくつ続いているか
-                length = 1
-                cx, cy = x + dx, y + dy
-                while 0 <= cx < board_size and 0 <= cy < board_size and board[cx, cy] == player:
-                    length += 1
-                    cx += dx
-                    cy += dy
-
-                # lengthが2,3,4のときのみカウント
                 if length in [2, 3, 4]:
-                    open_ends = 0
-                    # 連の前端
-                    if 0 <= prev_x < board_size and 0 <= prev_y < board_size:
-                        if board[prev_x, prev_y] == 0:
-                            open_ends += 1
-                    # 連の後端(cx, cy は「連が切れた場所」なので空かどうかチェック)
-                    if 0 <= cx < board_size and 0 <= cy < board_size:
-                        if board[cx, cy] == 0:
-                            open_ends += 1
-
                     if open_ends == 2:
                         result[length]['open2'] += 1
                     elif open_ends == 1:

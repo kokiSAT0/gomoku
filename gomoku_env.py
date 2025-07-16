@@ -254,7 +254,13 @@ class GomokuEnv:
         return True
 
     def _calc_chain_reward(self, before, after, table):
-        """連数の変化に応じた報酬を計算するヘルパー"""
+        """
+        連数 ``before`` -> ``after`` の変化に応じて報酬を計算するヘルパー。
+
+        ``diff`` が正なら連が増えた(もしくは相手の連を減らした)ことを
+        意味するので、その数だけ ``table`` の値を掛けて加算する。
+        """
+
         reward = 0.0
         for length in [2, 3, 4]:
             for open_type in ["open2", "open1"]:
@@ -270,11 +276,22 @@ class GomokuEnv:
         before_self: dict,
         before_opp: dict,
     ) -> float:
-        """石を置いたあとの中間報酬を計算する"""
+        """
+        石を置いた後に得られる中間報酬を計算する。
+
+        1. 自分と相手それぞれの連数を着手前後で比較する。
+        2. 自分の連が増えた分だけ ``self.r_chain`` テーブルを用いて加点。
+        3. 相手の連が減った分(=ブロックできた数)だけ ``self.r_block`` テーブルを用いて加点。
+        """
+
+        # --- 1) 着手後の連数を計測 ---------------------------------
         after_self = count_chains_open_ends(self.game.board, current_player)
         after_opp = count_chains_open_ends(self.game.board, opponent)
 
+        # --- 2) 自分の連の増加分を評価 --------------------------------
         reward = self._calc_chain_reward(before_self, after_self, self.r_chain)
+
+        # --- 3) 相手の連の減少(ブロック)を評価 --------------------------
         reward += self._calc_chain_reward(after_opp, before_opp, self.r_block)
 
         return reward

@@ -62,35 +62,32 @@ def opponent_player(player: int) -> int:
 # ------------------------------------------------------------
 
 def get_valid_actions(obs: np.ndarray, env) -> list[int]:
-    """盤面から着手可能な action を列挙する"""
-    # 盤面サイズは使わないが分かりやすいよう変数に保持
-    board_size = obs.shape[0]
-    # 石が置かれていない位置をすべて抽出
-    # np.argwhere は条件を満たすインデックスの配列を返す
+    """盤面と環境から合法手を列挙して返す"""
+    # 空きマスの座標をまとめて取得
     empty_positions = np.argwhere(obs == 0)
 
     valid_actions: list[int] = []
-    # 抽出した空きマスを走査し、実際に着手可能かを確認
+    # それぞれのマスについて着手可能かを判定
     for x, y in empty_positions:
         ix = int(x)
         iy = int(y)
-        # ルール上石が置ける場合のみ action として登録
         if env.can_place_stone(ix, iy):
+            # 座標から action 番号へ変換して登録
             valid_actions.append(env.coord_to_action(ix, iy))
 
     return valid_actions
 
 
 def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarray:
-    """無効手の確率を0にして正規化した配列を返す"""
-    # 全体を 0 で初期化した配列を用意
+    """確率分布から無効手を除外して再正規化する"""
+    # 全て0で初期化した配列を用意
     masked_probs = np.zeros_like(probs)
 
-    # 有効な手のみ元の確率をコピーする
+    # 有効手に対応する要素だけをコピー
     for a in valid_actions:
         masked_probs[a] = probs[a]
 
-    # 0 でない場合は確率の総和で割り正規化
+    # 合計が0でなければ正規化して確率分布を保つ
     total = masked_probs.sum()
     if total > 0.0:
         masked_probs /= total
@@ -100,11 +97,12 @@ def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarra
 
 def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value: float = -1e9) -> np.ndarray:
     """無効手のQ値を ``invalid_value`` で置き換える"""
-    # 元のQ値を保持したまま加工できるようコピーを作成
+    # 変更前の配列を残したいのでコピーを作成
     masked_q = q_values.copy()
 
     # True が無効手を示すブール配列を生成
     invalid_mask = np.ones_like(masked_q, dtype=bool)
+    # 有効手の位置だけ False に切り替える
 
     # 許可された手は False にしてマスクを外す
     for a in valid_actions:
@@ -134,7 +132,7 @@ class ReplayBuffer:
         # 例: board_size=9 の場合は (9, 9) の二次元配列
         self.buffer.append((s, a, r, s_next, done))
 
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """ランダムに ``batch_size`` 件取り出し NumPy 配列として返す"""
         batch = random.sample(self.buffer, batch_size)
         s, a, r, s_next, d = zip(*batch)

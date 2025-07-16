@@ -1,10 +1,20 @@
 import numpy as np
 import torch
+from pathlib import Path
 from gomoku_env import GomokuEnv
-from agents import PolicyAgent, RandomAgent, ImmediateWinBlockAgent, FourThreePriorityAgent, LongestChainAgent  # 自作のエージェントクラスをインポート
+from agents import (
+    PolicyAgent,
+    RandomAgent,
+    ImmediateWinBlockAgent,
+    FourThreePriorityAgent,
+    LongestChainAgent,
+)  # 自作のエージェントクラスをインポート
+
+# 学習済みモデルを配置しているフォルダへのパス
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 def evaluate_model(
-    policy_path="policy_agent_trained.pth",
+    policy_path=MODEL_DIR / "policy_agent_trained.pth",
     opponent_agent=None,
     num_episodes=1000,
     board_size=9
@@ -69,7 +79,7 @@ def evaluate_model(
 if __name__ == "__main__":
     # 例: ランダムエージェントと100回対戦
     evaluate_model(
-        policy_path="policy_agent_trained.pth",
+        policy_path=MODEL_DIR / "policy_agent_trained.pth",
         opponent_agent=FourThreePriorityAgent(),
         num_episodes=100,
         board_size=9

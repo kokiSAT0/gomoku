@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 from tqdm import tqdm
 
 from gomoku_env import GomokuEnv
@@ -14,6 +15,9 @@ from agents import (
     FourThreePriorityAgent,
     LongestChainAgent
 )
+
+# 学習済みモデルを格納するフォルダ
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 
 def selfplay_policy_vs_policy(
@@ -256,8 +260,8 @@ def main():
         white_params={"hidden_size":128, "lr":1e-3, "gamma":0.95}
     )
     plot_results(rew_b, rew_w, winners, turns, title="Policy vs Policy (9x9)")
-    black_agent.save_model("policy_agent_black.pth")
-    white_agent.save_model("policy_agent_white.pth")
+    black_agent.save_model(MODEL_DIR / "policy_agent_black.pth")
+    white_agent.save_model(MODEL_DIR / "policy_agent_white.pth")
 
     # 例2: QAgent vs QAgent
     # black_agent, white_agent, rew_b, rew_w, winners, turns = selfplay_q_vs_q(
@@ -268,8 +272,8 @@ def main():
     #     white_params={"hidden_size":128, "lr":1e-3, "gamma":0.95}
     # )
     # plot_results(rew_b, rew_w, winners, turns, title="Q vs Q (9x9)")
-    # black_agent.save_model("q_agent_black.pth")
-    # white_agent.save_model("q_agent_white.pth")
+    # black_agent.save_model(MODEL_DIR / "q_agent_black.pth")
+    # white_agent.save_model(MODEL_DIR / "q_agent_white.pth")
 
     # 例3: Policy(黒) vs Q(白)
     # black_agent, white_agent, rew_b, rew_w, winners, turns = selfplay_policy_vs_q(
@@ -281,8 +285,8 @@ def main():
     #     q_params={"hidden_size":128, "lr":1e-3, "gamma":0.95}
     # )
     # plot_results(rew_b, rew_w, winners, turns, title="Policy(Black) vs Q(White)")
-    # black_agent.save_model("policy_black.pth")
-    # white_agent.save_model("q_white.pth")
+    # black_agent.save_model(MODEL_DIR / "policy_black.pth")
+    # white_agent.save_model(MODEL_DIR / "q_white.pth")
 
     # 例4: Q(黒) vs Policy(白)
     # black_agent, white_agent, rew_b, rew_w, winners, turns = selfplay_policy_vs_q(
@@ -294,8 +298,8 @@ def main():
     #     q_params={"hidden_size":128, "lr":1e-3, "gamma":0.95}
     # )
     # plot_results(rew_b, rew_w, winners, turns, title="Q(Black) vs Policy(White)")
-    # black_agent.save_model("q_black.pth")
-    # white_agent.save_model("policy_white.pth")
+    # black_agent.save_model(MODEL_DIR / "q_black.pth")
+    # white_agent.save_model(MODEL_DIR / "policy_white.pth")
 
 
 def plot_results(rew_b, rew_w, winners, turns, title="SelfPlay"):

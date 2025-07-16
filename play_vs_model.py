@@ -1,11 +1,15 @@
 # play_vs_model.py
 import torch
 import numpy as np
+from pathlib import Path
 
 from gomoku_env import GomokuEnv
 from agents import PolicyAgent, RandomAgent
 
-def play_game_with_trained_model(policy_path="policy_agent_trained.pth"):
+# 学習済みモデルを保存したフォルダ
+MODEL_DIR = Path(__file__).resolve().parent / "models"
+
+def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.pth"):
     """
     学習済みモデルを用いて1ゲームだけ対戦を行う関数。
 
@@ -57,4 +61,4 @@ def play_game_with_trained_model(policy_path="policy_agent_trained.pth"):
         print("引き分け")
 
 if __name__ == "__main__":
-    play_game_with_trained_model("policy_agent_trained.pth")
+    play_game_with_trained_model(MODEL_DIR / "policy_agent_trained.pth")

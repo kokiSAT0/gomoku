@@ -38,6 +38,11 @@ class EpisodeStep:
 # 連をチェックする際に利用する方向のリスト
 # ----------------------------------------------------
 DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
+# 方向ベクトル一覧
+# (dx, dy) = (1, 0)  : 縦方向
+#            (0, 1)  : 横方向
+#            (1, 1)  : 右下への斜め
+#            (1, -1) : 右上への斜め
 
 # ----------------------------------------------------
 # 有効手(空マス)を列挙する関数
@@ -45,23 +50,31 @@ DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
 def longest_chain_length(obs, x, y, player, directions=DIRECTIONS):
     """指定座標に石を置いたと仮定したときの最長連結長を返すヘルパー"""
     board_size = obs.shape[0]
-    max_len = 1
+    max_len = 1  # 置いた石自身を含むので初期値は1
+    # 4 方向それぞれについて連の長さを調べる
     for dx, dy in directions:
-        count = 1
-        # 正方向へ伸びている石を数える
+        count = 1  # チェック開始時点では基点の石のみ
+
+        # ----- 正方向への探索 -----
+        # (dx, dy) 方向に一マスずつ進めながら同じプレイヤーの石を数える
         cx, cy = x + dx, y + dy
         while 0 <= cx < board_size and 0 <= cy < board_size and obs[cx, cy] == player:
             count += 1
             cx += dx
             cy += dy
-        # 逆方向へも伸ばす
+
+        # ----- 逆方向への探索 -----
+        # 上記だけでは片側しか調べられないため、逆方向にも伸ばす
         cx, cy = x - dx, y - dy
         while 0 <= cx < board_size and 0 <= cy < board_size and obs[cx, cy] == player:
             count += 1
             cx -= dx
             cy -= dy
+
+        # 基点を中心とした1 本の連が完成したので最大値を更新
         if count > max_len:
             max_len = count
+
     return max_len
 
 def has_n_in_a_row(obs, x, y, player, n, directions=DIRECTIONS):
@@ -76,11 +89,16 @@ def find_chain_move(obs, valid_actions, player, n, directions=DIRECTIONS):
         x = a // board_size
         y = a % board_size
 
-        # 仮に石を置いてn連が成立するか確認
+        # --------------------------------------------
+        # 実際に打つ前に一時的に石を置いてみる
+        # 盤面を壊さず連ができるかどうかを調べるため
+        # --------------------------------------------
         obs[x, y] = player
         if has_n_in_a_row(obs, x, y, player, n, directions):
+            # 連が完成した場合は元に戻してその手を返す
             obs[x, y] = 0
             return a
+        # 連ができなければ盤面を元に戻して次の候補へ
         obs[x, y] = 0
 
     return None

@@ -1,5 +1,7 @@
 import numpy as np
 
+from utils import opponent_player
+
 
 def _scan_chain_open_end(
     board: np.ndarray,
@@ -110,7 +112,8 @@ class Gomoku:
         手番を相手プレイヤーに交替。
         """
         self.board[x, y] = self.current_player
-        self.current_player = 2 if self.current_player == 1 else 1
+        # 石を置いたら次の手番へ交代
+        self.current_player = opponent_player(self.current_player)
 
     def check_winner(self):
         """
@@ -296,7 +299,8 @@ class GomokuEnv:
 
         # 現在のプレイヤーと相手プレイヤーを取得
         current_player = self.game.current_player
-        opponent = 2 if current_player == 1 else 1
+        # 相手プレイヤーIDを取得
+        opponent = opponent_player(current_player)
 
         # 着手前の連数を計測
         before_self = count_chains_open_ends(self.game.board, current_player)

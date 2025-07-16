@@ -9,6 +9,8 @@ import torch.nn.functional as F
 import collections
 from dataclasses import dataclass
 
+from utils import opponent_player
+
 
 @dataclass
 class Transition:
@@ -168,7 +170,8 @@ class ImmediateWinBlockAgent:
 
     def get_action(self, obs, env):
         current_player = env.current_player
-        opponent = 1 if current_player == 2 else 2
+        # 相手プレイヤーIDをユーティリティ関数で取得
+        opponent = opponent_player(current_player)
 
         valid_actions = get_valid_actions(obs, env)
         if not valid_actions:
@@ -210,7 +213,8 @@ class FourThreePriorityAgent:
 
     def get_action(self, obs, env):
         current_player = env.current_player
-        opponent = 1 if current_player == 2 else 2
+        # 相手プレイヤーIDを取得
+        opponent = opponent_player(current_player)
 
         valid_actions = get_valid_actions(obs, env)
         if not valid_actions:

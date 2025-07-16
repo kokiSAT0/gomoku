@@ -7,7 +7,7 @@ import random
 import collections
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from utils import moving_average
+from utils import moving_average, opponent_player
 
 ########################################################
 # 1) GomokuEnv (五目並べ環境)
@@ -110,7 +110,8 @@ class Gomoku:
         手番を相手プレイヤーに交替。
         """
         self.board[x, y] = self.current_player
-        self.current_player = 2 if self.current_player == 1 else 1
+        # 石を置いたら手番を交替
+        self.current_player = opponent_player(self.current_player)
 
     def check_winner(self):
         """
@@ -262,7 +263,8 @@ class GomokuEnv:
 
         # 現在のプレイヤーと相手プレイヤーを取得
         current_player = self.game.current_player
-        opponent = 2 if current_player == 1 else 1
+        # ユーティリティ関数で相手プレイヤーを取得
+        opponent = opponent_player(current_player)
 
         # 着手前の連数を計測
         before_self = count_chains_open_ends(self.game.board, current_player)
@@ -451,7 +453,8 @@ class ImmediateWinBlockAgent:
     def get_action(self, obs, env):
         board_size = obs.shape[0]
         current_player = env.current_player
-        opponent = 1 if current_player == 2 else 2
+        # 相手プレイヤーIDを取得
+        opponent = opponent_player(current_player)
 
         valid_actions = get_valid_actions(obs, env)
         if not valid_actions:
@@ -531,7 +534,8 @@ class FourThreePriorityAgent:
     def get_action(self, obs, env):
         board_size = obs.shape[0]
         current_player = env.current_player
-        opponent = 1 if current_player == 2 else 2
+        # 相手プレイヤーIDを取得
+        opponent = opponent_player(current_player)
 
         valid_actions = get_valid_actions(obs, env)
         if not valid_actions:

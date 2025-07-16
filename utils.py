@@ -33,3 +33,9 @@ def moving_average(data: Sequence[float], window: int) -> List[float]:
             # 要素数がまだ window 未満ならその時点での平均を使う
             result.append(acc / (i + 1))
     return result
+
+
+def opponent_player(player: int) -> int:
+    """与えられたプレイヤーID(1 or 2)の相手プレイヤーIDを返す"""
+    # 1なら2、2なら1を返すだけのシンプルな関数
+    return 2 if player == 1 else 1

@@ -29,30 +29,48 @@ def main():
     parser.add_argument("--board-size", type=int, default=9, help="盤面サイズ")
     parser.add_argument("--num-workers", type=int, default=10, help="並列ワーカー数")
     parser.add_argument("--device", default=None, help="使用デバイス(cuda/cpu)")
+    parser.add_argument(
+        "--policy-color",
+        choices=["black", "white"],
+        default="black",
+        help="PolicyAgent を先手(black)か後手(white)のどちらで学習するか",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     board_size = args.board_size
+    policy_color = args.policy_color
 
     if args.num_workers > 1:
         # 並列学習モード
         # train_master() は複数プロセスでエピソードを収集し
         # まとめて方策勾配法で更新を行う
         agent_params = {"device": device}
-        black_agent, rewards_b, winners, turns = train_master(
+        policy_agent, rewards_p, winners, turns = train_master(
             total_episodes=args.episodes,
             board_size=board_size,
             num_workers=args.num_workers,
             agent_params=agent_params,
             opponent_class=LongestChainAgent,
+            policy_color=policy_color,
         )
-        # 白番の報酬は黒番の報酬に符号を反転させて近似
-        rewards_w = [-r if r != 0 else 0 for r in rewards_b]
+        if policy_color == "black":
+            rewards_b = rewards_p
+            rewards_w = [-r if r != 0 else 0 for r in rewards_p]
+        else:
+            rewards_w = rewards_p
+            rewards_b = [-r if r != 0 else 0 for r in rewards_p]
     else:
         # 単一プロセスでの学習
         env = GomokuEnv(board_size=board_size)
-        black_agent = PolicyAgent(board_size=board_size, device=device)
-        white_agent = LongestChainAgent()
+        if policy_color == "black":
+            black_agent = PolicyAgent(board_size=board_size, device=device)
+            white_agent = LongestChainAgent()
+            policy_agent = black_agent
+        else:
+            black_agent = LongestChainAgent()
+            white_agent = PolicyAgent(board_size=board_size, device=device)
+            policy_agent = white_agent
 
         # 単純な1プロセス学習
         print("学習を開始します...")
@@ -60,9 +78,9 @@ def main():
             env, black_agent, white_agent, args.episodes
         )
 
-    # モデルを保存
+    # モデルを保存 (学習対象エージェント)
     save_path = MODEL_DIR / "policy_vs_longest.pth"
-    black_agent.save_model(save_path)
+    policy_agent.save_model(save_path)
 
     # 学習過程の可視化
     plot_results(rewards_b, rewards_w, winners, turns, title="Policy vs LongestChain")
@@ -74,6 +92,7 @@ def main():
         num_episodes=200,
         board_size=board_size,
         device=device,
+        policy_color=policy_color,
     )
     print(f"学習後の勝率: {win_rate:.2f}")
 

@@ -21,20 +21,32 @@ from agents import (
     EpisodeStep
 )
 
-def play_one_episode(env, agent_black, agent_white):
+def play_one_episode(env, agent_black, agent_white, policy_color="black"):
     """
-    1エピソード(=1ゲーム)を実行し、最終的に (episode_log, winner) を返す。
+    1エピソード(=1ゲーム)を実行し、(episode_log, winner, turn_count) を返す。
 
-    - 黒番(先手)は agent_black, 白番(後手)は agent_white。
-    - 黒番エージェントが方策学習する想定（PolicyAgentなど）。
-      黒が打った後に得られた報酬を agent_black.record_reward(reward) で記録していく。
-    - ここでは黒番エージェントの内部ログのうち、このゲームで追加された分だけを抽出して返す。
+    Parameters
+    ----------
+    env : GomokuEnv
+        ゲーム環境
+    agent_black : Agent
+        先手のエージェント
+    agent_white : Agent
+        後手のエージェント
+    policy_color : str
+        "black" なら先手エージェントを学習対象とし、
+        "white" なら後手エージェントを学習対象とする。
+
+    学習対象エージェントの行動後に得られた報酬を episode_log に記録して返す。
     """
     obs = env.reset()
     done = False
 
-    # 黒番エージェント内部のログの開始位置
-    start_log_len = len(agent_black.episode_log)
+    # 学習対象エージェントを決定
+    policy_agent = agent_black if policy_color == "black" else agent_white
+
+    # 学習対象エージェントのログの開始位置
+    start_log_len = len(policy_agent.episode_log)
 
     while not done:
         if env.current_player == 1:
@@ -44,9 +56,11 @@ def play_one_episode(env, agent_black, agent_white):
 
         next_obs, reward, done, info = env.step(action)
 
-        # 今手を打ったのが黒なら、その行動の報酬を記録
-        if env.current_player == 2:  # 黒番が打った後はcurrent_player==2(白番)になる
-            agent_black.record_reward(reward)
+        # 学習対象の行動後であれば報酬を記録
+        if policy_color == "black" and env.current_player == 2:
+            policy_agent.record_reward(reward)
+        elif policy_color == "white" and env.current_player == 1:
+            policy_agent.record_reward(reward)
 
         obs = next_obs
 
@@ -54,8 +68,8 @@ def play_one_episode(env, agent_black, agent_white):
     turn_count = env.turn_count
 
     # 今エピソードで追加された分のログを抽出
-    end_log_len = len(agent_black.episode_log)
-    episode_log = agent_black.episode_log[start_log_len:end_log_len]
+    end_log_len = len(policy_agent.episode_log)
+    episode_log = policy_agent.episode_log[start_log_len:end_log_len]
 
     return episode_log, winner, turn_count
 
@@ -66,24 +80,34 @@ def train_worker(
     board_size,
     agent_params,
     opponent_class=ImmediateWinBlockAgent,
-    env_params=None
+    env_params=None,
+    policy_color="black"
 ):
     """
     ワーカープロセスごとにエージェントを作成し、複数エピソードを実行してデータを返す関数。
       - board_size: 盤サイズ
-      - agent_params: 黒番(PolicyAgentなど)に渡すパラメータ(dict)
-      - opponent_class: 対戦相手エージェントのクラス (例: ImmediateWinBlockAgent, RandomAgent等)
-      - env_params: GomokuEnvのパラメータ(dict)。force_center_first_move等を指定可能。
+      - agent_params: PolicyAgent に渡すパラメータ(dict)
+      - opponent_class: 対戦相手エージェントのクラス
+      - env_params: GomokuEnv のパラメータ(dict)
+      - policy_color: PolicyAgent を "black" か "white" のどちらで学習するか
 
-    戻り値: local_data (リスト)。要素は (episode_log, winner) のタプル。
+    戻り値: local_data (リスト)。要素は (episode_log, winner, turn_count) のタプル。
     """
     if env_params is None:
         env_params = {}
 
-    # 黒番(学習対象)のPolicyAgentを作る
+    # 学習対象のPolicyAgent
     policy_agent = PolicyAgent(board_size=board_size, **agent_params)
-    # 白番(対戦相手)
-    white_agent = opponent_class()
+    # 対戦相手
+    opponent_agent = opponent_class()
+
+    # 先手・後手を振り分け
+    if policy_color == "black":
+        black_agent = policy_agent
+        white_agent = opponent_agent
+    else:
+        black_agent = opponent_agent
+        white_agent = policy_agent
 
     # 環境
     env = GomokuEnv(board_size=board_size, **env_params)
@@ -91,7 +115,12 @@ def train_worker(
     local_data = []
     for _ in range(num_episodes):
         # 1ゲーム実行
-        episode_log, winner, turn_count = play_one_episode(env, policy_agent, white_agent)
+        episode_log, winner, turn_count = play_one_episode(
+            env,
+            black_agent,
+            white_agent,
+            policy_color=policy_color,
+        )
         local_data.append((episode_log, winner, turn_count))
 
     return local_data
@@ -107,7 +136,8 @@ def train_master(
     hidden_size=128,
     env_params=None,
     agent_params=None,
-    opponent_class=ImmediateWinBlockAgent
+    opponent_class=ImmediateWinBlockAgent,
+    policy_color="black"
 ):
     """
     メインプロセスが並列でエピソードを集め、バッチ単位でREINFORCE学習する例。
@@ -119,8 +149,9 @@ def train_master(
       - num_workers: 並列ワーカー数 (multiprocessing.Pool)
       - lr, gamma, hidden_size: PolicyAgentの学習ハイパーパラメータ
       - env_params: 環境のパラメータ(dict)。例: {"force_center_first_move":True, "adjacency_range":1, ...}
-      - agent_params: 黒番エージェント(PolicyAgent)の追加パラメータ(dict)。Noneなら内部で作成
+      - agent_params: 学習対象PolicyAgentの追加パラメータ(dict)。Noneなら内部で作成
       - opponent_class: 対戦相手として使うエージェントのクラス
+      - policy_color: "black" なら先手、"white" なら後手を学習させる
 
     戻り値: (学習済みpolicy_agent, 各エピソードの報酬リスト)
     """
@@ -157,14 +188,17 @@ def train_master(
             # 各ワーカーに渡すパラメータ
             worker_args = []
             for wid in range(num_workers):
-                worker_args.append((
-                    wid,          # worker_id (未使用)
-                    eppw,         # num_episodes (ワーカー単位)
-                    board_size,
-                    agent_params, # black番のパラメータ
-                    opponent_class,
-                    env_params
-                ))
+                worker_args.append(
+                    (
+                        wid,
+                        eppw,
+                        board_size,
+                        agent_params,
+                        opponent_class,
+                        env_params,
+                        policy_color,
+                    )
+                )
             # 並列実行 => 各ワーカーが eppwエピソードずつ回して (episode_log, winner) のリストを返す
             results = pool.starmap(train_worker, worker_args)
             # results は [worker_data, worker_data, ...] (長さ num_workers)
@@ -174,13 +208,21 @@ def train_master(
             all_episodes = []
             for worker_data in results:
                 for (episode_log, winner, turn_count) in worker_data:
-                    # black視点の報酬 (+1=黒勝ち, -1=白勝ち, 0=引き分け)
-                    if winner == 1:
-                        r = 1.0
-                    elif winner == 2:
-                        r = -1.0
+                    # 学習対象(PolicyAgent)視点の報酬
+                    if policy_color == "black":
+                        if winner == 1:
+                            r = 1.0
+                        elif winner == 2:
+                            r = -1.0
+                        else:
+                            r = 0.0
                     else:
-                        r = 0.0
+                        if winner == 2:
+                            r = 1.0
+                        elif winner == 1:
+                            r = -1.0
+                        else:
+                            r = 0.0
 
                     all_rewards.append(r)
                     all_winners.append(winner)

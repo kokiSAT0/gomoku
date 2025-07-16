@@ -7,7 +7,11 @@ import random
 import collections
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from pathlib import Path
 from utils import moving_average, opponent_player
+
+# 学習済みモデルを保存するディレクトリ
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 ########################################################
 # 1) GomokuEnv (五目並べ環境)
@@ -433,10 +437,10 @@ class RandomAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="random_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "random_agent.pth"):
         pass
 
-    def load_model(self, path="random_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "random_agent.pth"):
         pass
 
 
@@ -517,10 +521,10 @@ class ImmediateWinBlockAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="immediate_win_block_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "immediate_win_block_agent.pth"):
         pass
 
-    def load_model(self, path="immediate_win_block_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "immediate_win_block_agent.pth"):
         pass
 
 
@@ -606,10 +610,10 @@ class FourThreePriorityAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="four_three_priority_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "four_three_priority_agent.pth"):
         pass
 
-    def load_model(self, path="four_three_priority_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "four_three_priority_agent.pth"):
         pass
 
 
@@ -674,10 +678,10 @@ class LongestChainAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="longest_chain_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "longest_chain_agent.pth"):
         pass
 
-    def load_model(self, path="longest_chain_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "longest_chain_agent.pth"):
         pass
 
 
@@ -840,10 +844,10 @@ class PolicyAgent:
         new_temp = self.temp * self.temp_decay
         self.temp = max(new_temp, self.min_temp)
 
-    def save_model(self, path="policy_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "policy_agent.pth"):
         torch.save(self.model.state_dict(), path)
 
-    def load_model(self, path="policy_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "policy_agent.pth"):
         self.model.load_state_dict(torch.load(path))
         self.model.eval()
 
@@ -1001,10 +1005,10 @@ class QAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="q_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "q_agent.pth"):
         torch.save(self.qnet.state_dict(), path)
 
-    def load_model(self, path="q_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "q_agent.pth"):
         self.qnet.load_state_dict(torch.load(path))
         self.qnet.eval()
         hard_update(self.target_qnet, self.qnet)
@@ -1174,8 +1178,8 @@ def main():
     # rew_b, rew_w, winners, turns = train_agents(env, black_agent, white_agent, config["episodes"])
     # plot_results(rew_b, rew_w, winners, turns, title="Policy vs Policy")
 
-    # black_agent.save_model("policy_black.pth")
-    # white_agent.save_model("policy_white.pth")
+    # black_agent.save_model(MODEL_DIR / "policy_black.pth")
+    # white_agent.save_model(MODEL_DIR / "policy_white.pth")
 
     # ------------------------------
     # 例2: QAgent vs QAgent (自己対戦)
@@ -1186,8 +1190,8 @@ def main():
     rew_b, rew_w, winners, turns = train_agents(env, black_q, white_q, config["episodes"])
     plot_results(rew_b, rew_w, winners, turns, title="Q vs Q")
     
-    black_q.save_model("q_black.pth")
-    white_q.save_model("q_white.pth")
+    black_q.save_model(MODEL_DIR / "q_black.pth")
+    white_q.save_model(MODEL_DIR / "q_white.pth")
 
     # ------------------------------
     # 例3: ヒューリスティックAgent vs 学習Agent
@@ -1218,10 +1222,10 @@ if __name__ == "__main__":
     main()
     # 学習済みモデルをロードしてエージェントを再現
     black_q = QAgent(**config["q_params"])
-    black_q.load_model("q_black.pth")
+    black_q.load_model(MODEL_DIR / "q_black.pth")
     
     white_q = QAgent(**config["q_params"])
-    white_q.load_model("q_white.pth")
+    white_q.load_model(MODEL_DIR / "q_white.pth")
 
     # pygameで対戦を再生
     run_match_pygame(black_q, white_q, board_size=config["board_size"], pause_time=0.5)

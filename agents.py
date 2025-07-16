@@ -8,8 +8,16 @@ import torch.optim as optim
 import torch.nn.functional as F
 import collections
 from dataclasses import dataclass
+from pathlib import Path
 
 from utils import opponent_player
+
+# ----------------------------------------------------
+# 学習済みモデルを保存するディレクトリ
+# ----------------------------------------------------
+MODEL_DIR = Path(__file__).resolve().parent / "models"
+# フォルダが存在しない場合は作成しておく
+MODEL_DIR.mkdir(exist_ok=True)
 
 
 @dataclass
@@ -165,10 +173,10 @@ class RandomAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="random_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "random_agent.pth"):
         pass
 
-    def load_model(self, path="random_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "random_agent.pth"):
         pass
 
 
@@ -211,10 +219,10 @@ class ImmediateWinBlockAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="immediate_win_block_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "immediate_win_block_agent.pth"):
         pass
 
-    def load_model(self, path="immediate_win_block_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "immediate_win_block_agent.pth"):
         pass
 
 
@@ -264,10 +272,10 @@ class FourThreePriorityAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="four_three_priority_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "four_three_priority_agent.pth"):
         pass
 
-    def load_model(self, path="four_three_priority_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "four_three_priority_agent.pth"):
         pass
 
 
@@ -319,10 +327,10 @@ class LongestChainAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="longest_chain_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "longest_chain_agent.pth"):
         pass
 
-    def load_model(self, path="longest_chain_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "longest_chain_agent.pth"):
         pass
 
 
@@ -457,10 +465,10 @@ class PolicyAgent:
         new_temp = self.temp * self.temp_decay
         self.temp = max(new_temp, self.min_temp)
 
-    def save_model(self, path="policy_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "policy_agent.pth"):
         torch.save(self.model.state_dict(), path)
 
-    def load_model(self, path="policy_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "policy_agent.pth"):
         self.model.load_state_dict(torch.load(path))
         self.model.eval()
 
@@ -601,9 +609,9 @@ class QAgent:
     def finish_episode(self):
         pass
 
-    def save_model(self, path="q_agent.pth"):
+    def save_model(self, path=MODEL_DIR / "q_agent.pth"):
         torch.save(self.qnet.state_dict(), path)
 
-    def load_model(self, path="q_agent.pth"):
+    def load_model(self, path=MODEL_DIR / "q_agent.pth"):
         self.qnet.load_state_dict(torch.load(path))
         self.qnet.eval()

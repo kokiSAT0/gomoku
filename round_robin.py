@@ -3,7 +3,11 @@
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from pathlib import Path
 from gomoku_env import GomokuEnv
+
+# 学習済みモデルの保存先ディレクトリ
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 def play_match(agent_black, agent_white, board_size=9, num_episodes=10):
     """
@@ -247,11 +251,11 @@ if __name__ == "__main__":
 
     # 例: 学習済みPolicyAgent (読み込めるならアンコメント)
     agentP = PolicyAgent(board_size=9)
-    agentP.load_model("policy_agent_black.pth")
+    agentP.load_model(MODEL_DIR / "policy_agent_black.pth")
 
     # 例: 学習済みQAgent (読み込めるならアンコメント)
     agentQ = QAgent(board_size=9)
-    agentQ.load_model("q_agent_black.pth")
+    agentQ.load_model(MODEL_DIR / "q_agent_black.pth")
 
     agents = [agentA, agentB, agentC, agentD, agentP, agentQ]  
     agent_names = ["Random", "Immediate", "FourThree", "Longest", "Policy", "QAgent"]

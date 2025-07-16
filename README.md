@@ -29,7 +29,7 @@ pip install -r requirements.txt
 - `parallel_train.py` : 並列処理を用いた学習実験用サンプル
 - `round_robin.py` : 複数エージェントの総当たり戦
 
-この他 `*.pth` ファイルは学習済みモデルの重みです。
+`models/` フォルダには学習済みモデル(`*.pth`)をまとめて保存しています。
 
 ## 基本的な使い方
 

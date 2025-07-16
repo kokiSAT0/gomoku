@@ -4,6 +4,7 @@ import pygame
 import sys
 import time
 import numpy as np
+from pathlib import Path
 
 from gomoku_env import GomokuEnv
 from agents import (
@@ -14,6 +15,9 @@ from agents import (
     FourThreePriorityAgent,
     LongestChainAgent
 )
+
+# 学習済みモデルをまとめたフォルダ
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 CELL_SIZE = 50                # 1マスあたりのピクセルサイズ
 LINE_COLOR = (0, 0, 0)        # グリッド線(黒)
@@ -314,11 +318,11 @@ if __name__ == "__main__":
         env_params={"force_center_first_move": False, "adjacency_range": 1},
 
         black_agent_type="policy",
-        black_agent_path="policy_agent_black.pth",  # 学習済みモデルファイル
+        black_agent_path=MODEL_DIR / "policy_agent_black.pth",  # 学習済みモデルファイル
         black_agent_params={"hidden_size":128, "lr":1e-3, "gamma":0.95},
 
         white_agent_type="policy",
-        white_agent_path="policy_agent_white.pth",  # ヒューリスティックならNone
+        white_agent_path=MODEL_DIR / "policy_agent_white.pth",  # ヒューリスティックならNone
         white_agent_params={},
 
         visualize=True,
@@ -337,7 +341,7 @@ if __name__ == "__main__":
     #     env_params={"force_center_first_move": True, "adjacency_range": 1},
     #
     #     black_agent_type="q",
-    #     black_agent_path="q_agent_black.pth",
+    #     black_agent_path=MODEL_DIR / "q_agent_black.pth",
     #     black_agent_params={"hidden_size":128, "lr":1e-3, "gamma":0.95},
     #
     #     white_agent_type="longest",

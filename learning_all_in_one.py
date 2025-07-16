@@ -1042,7 +1042,20 @@ def train_agents(
 
             obs = next_obs
 
-        # エピソード終了
+        # ゲームが終了した時点で勝敗に応じて敗者側にも報酬を記録する
+        winner = info["winner"]
+        if winner == 1:
+            # 黒勝ちなら白に敗北報酬を与える
+            white_agent.record_reward(-1.0)
+        elif winner == 2:
+            # 白勝ちなら黒に敗北報酬を与える
+            black_agent.record_reward(-1.0)
+        elif winner == -1:
+            # 引き分けは双方に0報酬としておく
+            white_agent.record_reward(0.0)
+            black_agent.record_reward(0.0)
+
+        # エピソード終了後に方策の更新処理を呼び出す
         black_agent.finish_episode()
         white_agent.finish_episode()
 

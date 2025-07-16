@@ -6,8 +6,6 @@
 1 ゲームだけ実行する。コマンドラインから次のように利用する。
     $ python play_vs_model.py
 """
-import torch
-import numpy as np
 from pathlib import Path
 
 from gomoku_env import GomokuEnv

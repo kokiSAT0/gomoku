@@ -325,7 +325,8 @@ class PolicyAgent:
 
         # 2) ネットワーク推論
         with torch.no_grad():
-            logits = self.model(state_t)  # shape: (1, board_size*board_size)
+            # logits のテンソル形状は (1, board_size*board_size)
+            logits = self.model(state_t)
             # ここでソフトマックス温度を適用
             scaled_logits = logits / self.temp
             probs = F.softmax(scaled_logits, dim=1).cpu().numpy().flatten()

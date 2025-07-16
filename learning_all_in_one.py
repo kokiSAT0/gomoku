@@ -672,7 +672,8 @@ class PolicyNet(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_dim)
 
     def forward(self, x):
-        # x shape: (batch_size, board_size*board_size)
+        # x のテンソル形状は (batch_size, board_size*board_size)
+        # バッチごとに盤面をフラットにした入力が渡される
         h = F.relu(self.fc1(x))
         logits = self.fc2(h)
         return logits
@@ -723,7 +724,8 @@ class PolicyAgent:
         state_t = torch.tensor(obs.flatten(), dtype=torch.float32).unsqueeze(0)
 
         # 2) ネットワーク推論 (logits)  ← 勾配を追跡したいので no_grad() は付けない
-        logits = self.model(state_t)  # shape: (1, board_size*board_size)
+        # 出力 logits のテンソル形状は (1, board_size*board_size)
+        logits = self.model(state_t)
 
         # ソフトマックス温度を適用
         scaled_logits = logits / self.temp
@@ -786,7 +788,8 @@ class PolicyAgent:
         actions = [x[1] for x in self.episode_log]
         returns_t = torch.tensor(returns, dtype=torch.float32)
         logits_list = [x[3] for x in self.episode_log]
-        logits_cat = torch.cat(logits_list, dim=0)  # shape: (T, board_size^2)
+        # T はエピソード長を表し、結合後のテンソル形状は (T, board_size^2)
+        logits_cat = torch.cat(logits_list, dim=0)
 
         # 4) 順伝播して log_prob, entropy を計算 (エピソード分まとめて一気に)
         log_probs = F.log_softmax(logits_cat, dim=1)  # (T, board_size^2)
@@ -840,7 +843,8 @@ class QNet(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_dim)
 
     def forward(self, x):
-        # x shape: (batch_size, board_size^2)
+        # x のテンソル形状は (batch_size, board_size^2)
+        # DQN への入力も盤面をフラット化したベクトル
         h = F.relu(self.fc1(x))
         q = self.fc2(h)
         return q

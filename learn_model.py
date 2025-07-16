@@ -36,11 +36,11 @@ def selfplay_policy_vs_policy(
     """
     PolicyAgent 同士の自己対戦 (黒番:Policy, 白番:Policy)
     """
-    if env_params is None: 
+    if env_params is None:
         env_params = {}
-    if black_params is None: 
+    if black_params is None:
         black_params = {}
-    if white_params is None: 
+    if white_params is None:
         white_params = {}
 
     env = GomokuEnv(board_size=board_size, **env_params)

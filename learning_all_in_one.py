@@ -164,7 +164,7 @@ class GomokuEnv:
     """
     五目並べを「強化学習用の環境」としてラップし、
     中間報酬(連を作る・相手の連をブロックする)を追加したバージョン。
-    
+
     使い方:
       env = GomokuEnv()
       obs = env.reset()
@@ -233,14 +233,14 @@ class GomokuEnv:
     def coord_to_action(self, x: int, y: int) -> int:
         """``(x, y)`` 座標を action 番号に変換"""
         return x * self.board_size + y
-    
+
     def can_place_stone(self, x, y):
         """
         自分の環境ルールに照らして(x,y)が有効手かどうかをチェック。
         - 1) 初手は中央強制の場合、(turn_count == 0) なら (x==center, y==center) か？
         - 2) adjacency_range 制限を適用するなら適用 (コメントアウト可能)
         - 3) 盤外 or 既に石ありでないか？
-        
+
         全て満たせばTrue, そうでなければFalse。
         """
         # 1) 初手は中央のみ
@@ -248,12 +248,12 @@ class GomokuEnv:
             center = self.board_size // 2
             if not (x == center and y == center):
                 return False
-        
+
         # 2) adjacency_rangeチェック(必要ならコメントアウト解除)
         # if (self.turn_count >= 1) and (self.adjacency_range is not None) and (self.adjacency_range > 0):
         #     if not self._is_adjacent_to_stone(x, y, self.adjacency_range):
         #         return False
-        
+
         # 3) 盤外 or 既に石あり
         if not self.game.is_valid_move(x, y):
             return False
@@ -704,7 +704,7 @@ class PolicyAgent:
 
         self.model = PolicyNet(board_size, hidden_size)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        
+
         # メモリ: (state_t, action, reward, logits) を保存する
         self.episode_log = []
 
@@ -1140,10 +1140,10 @@ def main():
     # ------------------------------
     black_q = QAgent(**config["q_params"])
     white_q = QAgent(**config["q_params"])
-    
+
     rew_b, rew_w, winners, turns = train_agents(env, black_q, white_q, config["episodes"])
     plot_results(rew_b, rew_w, winners, turns, title="Q vs Q")
-    
+
     black_q.save_model(MODEL_DIR / "q_black.pth")
     white_q.save_model(MODEL_DIR / "q_white.pth")
 
@@ -1154,7 +1154,7 @@ def main():
     # env = GomokuEnv(board_size=config["board_size"], **config["env_params"])
     # black_policy = PolicyAgent(**config["policy_params"])
     # white_heuristic = LongestChainAgent()
-    
+
     # rew_b, rew_w, winners, turns = train_agents(env, black_policy, white_heuristic, config["episodes"])
     # plot_results(rew_b, rew_w, winners, turns, title="Policy(Black) vs ImmediateWinBlock(White)")
 
@@ -1165,7 +1165,7 @@ def main():
     # env = GomokuEnv(board_size=config["board_size"], **config["env_params"])
     # black_q = QAgent(**config["q_params"])
     # white_heuristic = LongestChainAgent()
-    
+
     # rew_b, rew_w, winners, turns = train_agents(env, black_q, white_heuristic, config["episodes"])
     # plot_results(rew_b, rew_w, winners, turns, title="Q(Black) vs FourThreePriority(White)")
 
@@ -1177,7 +1177,7 @@ if __name__ == "__main__":
     # 学習済みモデルをロードしてエージェントを再現
     black_q = QAgent(**config["q_params"])
     black_q.load_model(MODEL_DIR / "q_black.pth")
-    
+
     white_q = QAgent(**config["q_params"])
     white_q.load_model(MODEL_DIR / "q_white.pth")
 

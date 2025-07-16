@@ -23,7 +23,7 @@ from agents import (
 def play_one_episode(env, agent_black, agent_white):
     """
     1エピソード(=1ゲーム)を実行し、最終的に (episode_log, winner) を返す。
-    
+
     - 黒番(先手)は agent_black, 白番(後手)は agent_white。
     - 黒番エージェントが方策学習する想定（PolicyAgentなど）。
       黒が打った後に得られた報酬を agent_black.record_reward(reward) で記録していく。
@@ -184,7 +184,7 @@ def train_master(
                     all_rewards.append(r)
                     all_winners.append(winner)
                     all_turn_counts.append(turn_count)
-                    
+
                     all_episodes.append(episode_log)
 
             # --- バッチ内のエピソードをまとめて学習 ---
@@ -197,7 +197,7 @@ def update_with_trajectories(agent, all_episodes):
     """
     外部で収集した複数エピソード(all_episodes)をまとめて
     REINFORCEにより学習を行うための処理。
-    
+
     all_episodes: [episode_log, episode_log, ...]
       ここで episode_log は [(state_tensor, action, reward), (state_tensor, action, reward), ...]
     """

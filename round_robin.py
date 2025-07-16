@@ -39,7 +39,7 @@ def play_match(agent_black, agent_white, board_size=9, num_episodes=10):
                 action = agent_black.get_action(obs, env)
             else:                       # 白番
                 action = agent_white.get_action(obs, env)
-            
+
             obs, reward, done, info = env.step(action)
 
         winner = info["winner"]
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     agentQ = QAgent(board_size=9)
     agentQ.load_model(MODEL_DIR / "q_agent_black.pth")
 
-    agents = [agentA, agentB, agentC, agentD, agentP, agentQ]  
+    agents = [agentA, agentB, agentC, agentD, agentP, agentQ]
     agent_names = ["Random", "Immediate", "FourThree", "Longest", "Policy", "QAgent"]
 
     # 総当たり試合を実行(各マッチ10試合ずつ)

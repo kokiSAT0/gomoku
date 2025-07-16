@@ -26,14 +26,15 @@ def moving_average(data: Sequence[float], window: int) -> List[float]:
     if window <= 0:
         raise ValueError("window must be positive")
 
-    # Pythonのリストなどを numpy 配列へ変換
-    arr = np.asarray(data, dtype=float)
-    n = arr.size
+    # Python のシーケンスを NumPy 配列へ変換
+    # "arr" だと意味が分かりにくいので data_array としている
+    data_array = np.asarray(data, dtype=float)
+    n = data_array.size
     if n == 0:
         return []
 
     # 累積和(cumsum)を利用して計算量を削減
-    cumsum = np.cumsum(arr)
+    cumsum = np.cumsum(data_array)
     # 結果格納用の配列を用意
     result = np.empty(n, dtype=float)
 
@@ -62,36 +63,57 @@ def opponent_player(player: int) -> int:
 
 def get_valid_actions(obs: np.ndarray, env) -> list[int]:
     """盤面から着手可能な action を列挙する"""
+    # 盤面サイズは使わないが分かりやすいよう変数に保持
     board_size = obs.shape[0]
+    # 石が置かれていない位置をすべて抽出
+    # np.argwhere は条件を満たすインデックスの配列を返す
     empty_positions = np.argwhere(obs == 0)
+
     valid_actions: list[int] = []
+    # 抽出した空きマスを走査し、実際に着手可能かを確認
     for x, y in empty_positions:
         ix = int(x)
         iy = int(y)
+        # ルール上石が置ける場合のみ action として登録
         if env.can_place_stone(ix, iy):
             valid_actions.append(env.coord_to_action(ix, iy))
+
     return valid_actions
 
 
 def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarray:
     """無効手の確率を0にして正規化した配列を返す"""
-    masked = np.zeros_like(probs)
+    # 全体を 0 で初期化した配列を用意
+    masked_probs = np.zeros_like(probs)
+
+    # 有効な手のみ元の確率をコピーする
     for a in valid_actions:
-        masked[a] = probs[a]
-    total = masked.sum()
+        masked_probs[a] = probs[a]
+
+    # 0 でない場合は確率の総和で割り正規化
+    total = masked_probs.sum()
     if total > 0.0:
-        masked /= total
-    return masked
+        masked_probs /= total
+
+    return masked_probs
 
 
 def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value: float = -1e9) -> np.ndarray:
     """無効手のQ値を ``invalid_value`` で置き換える"""
-    masked = q_values.copy()
-    mask = np.ones_like(masked, dtype=bool)
+    # 元のQ値を保持したまま加工できるようコピーを作成
+    masked_q = q_values.copy()
+
+    # True が無効手を示すブール配列を生成
+    invalid_mask = np.ones_like(masked_q, dtype=bool)
+
+    # 許可された手は False にしてマスクを外す
     for a in valid_actions:
-        mask[a] = False
-    masked[mask] = invalid_value
-    return masked
+        invalid_mask[a] = False
+
+    # マスクされた箇所は非常に小さい値で塗りつぶす
+    masked_q[invalid_mask] = invalid_value
+
+    return masked_q
 
 
 class ReplayBuffer:

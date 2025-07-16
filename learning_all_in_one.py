@@ -15,6 +15,9 @@ from tqdm import tqdm
 from pathlib import Path
 from utils import moving_average, opponent_player, get_valid_actions, mask_probabilities, mask_q_values, ReplayBuffer
 
+# play_with_pygame の描画機能を利用するためのインポート
+from play_with_pygame import play_game
+
 # 学習済みモデルを保存するディレクトリ
 MODEL_DIR = Path(__file__).resolve().parent / "models"
 
@@ -1191,6 +1194,19 @@ def main():
     # plot_results(rew_b, rew_w, winners, turns, title="Q(Black) vs FourThreePriority(White)")
 
     # 好みに合わせて学習させたい組み合わせを試してみてください。
+
+
+def run_match_pygame(black_agent, white_agent, board_size=9, pause_time=0.5):
+    """簡単なPyGame表示付き対戦実行関数"""
+
+    # 1ゲームだけ対戦して盤面を可視化する
+    env = GomokuEnv(board_size=board_size, **config["env_params"])
+
+    # fpsは1手ごとの待ち時間の逆数
+    fps = 1.0 / pause_time if pause_time > 0 else 0
+
+    # play_with_pygame の便利関数を利用して対戦
+    play_game(env, black_agent, white_agent, visualize=True, fps=fps)
 
 
 if __name__ == "__main__":

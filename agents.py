@@ -1,5 +1,12 @@
 # agents.py
 
+"""各種エージェントクラスを定義するモジュール。
+
+ランダム戦略から強化学習ベースのエージェントまでを実装し、
+他のスクリプトからインポートして ``get_action`` を呼び出すことで
+対戦や学習に利用できる。
+"""
+
 import random
 import numpy as np
 import torch

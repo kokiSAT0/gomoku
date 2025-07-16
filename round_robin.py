@@ -1,5 +1,11 @@
 # round_robin.py
 
+"""複数のエージェントを総当たり戦させて勝率表を作成するスクリプト。
+
+`round_robin_tournament` 関数を利用して全ての組み合わせを評価し、
+成績やランキングを算出する。
+"""
+
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt

@@ -1,5 +1,11 @@
 # play_with_pygame.py
 
+"""Pygame を用いて GUI 上で対戦を可視化するスクリプト。
+
+学習済みモデルやヒューリスティックエージェントを組み合わせ、
+1 ゲームのみ盤面を表示しながらプレイする際に使用する。
+"""
+
 import pygame
 import sys
 import time

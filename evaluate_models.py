@@ -1,3 +1,11 @@
+"""学習済みモデルの性能を評価するスクリプト。
+
+指定した ``PolicyAgent`` を他のエージェントと複数回対戦させ、
+黒番の勝率を計算する。
+例:
+    $ python evaluate_models.py
+"""
+
 import numpy as np
 import torch
 from pathlib import Path

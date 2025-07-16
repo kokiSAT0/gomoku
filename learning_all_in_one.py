@@ -374,6 +374,30 @@ def get_valid_actions(obs, env):
                 valid_actions.append(x * board_size + y)
     return valid_actions
 
+# ----------------------------------------------------
+# 方策分布/Q値のマスク処理用ヘルパー
+# ----------------------------------------------------
+
+def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarray:
+    """有効手のみ残して正規化した確率配列を返す"""
+    masked = np.zeros_like(probs)
+    for a in valid_actions:
+        masked[a] = probs[a]
+    total = masked.sum()
+    if total > 0.0:
+        masked /= total
+    return masked
+
+
+def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value: float = -1e9) -> np.ndarray:
+    """無効手のQ値を ``invalid_value`` で置き換える"""
+    masked = q_values.copy()
+    mask = np.ones_like(masked, dtype=bool)
+    for a in valid_actions:
+        mask[a] = False
+    masked[mask] = invalid_value
+    return masked
+
 
 # ----------------------------------------------------
 # ランダムエージェント (学習しない)
@@ -717,15 +741,11 @@ class PolicyAgent:
         probs_np = probs_tensor.detach().cpu().numpy().flatten()
 
         valid_actions = get_valid_actions(obs, env)
-        mask = np.zeros_like(probs_np, dtype=bool)
-        for a in valid_actions:
-            mask[a] = True
-        probs_np[~mask] = 0.0
+        probs_np = mask_probabilities(probs_np, valid_actions)
 
         if probs_np.sum() == 0.0:
             return 0  # 有効手が無い場合のfallback
 
-        probs_np /= probs_np.sum()  # 再正規化
         action = np.random.choice(len(probs_np), p=probs_np)
 
         # 4) エピソードログに記録 (最初は報酬=0.0)
@@ -900,11 +920,8 @@ class QAgent:
             state_t = torch.tensor(obs.flatten(), dtype=torch.float32).unsqueeze(0)
             with torch.no_grad():
                 q_values = self.qnet(state_t).numpy().flatten()
-            # 有効手以外は -∞ にして argmax から除外
-            mask = np.ones_like(q_values, dtype=bool)
-            for a in valid_actions:
-                mask[a] = False
-            q_values[mask] = -1e9
+            # 無効手は非常に低い値に置き換える
+            q_values = mask_q_values(q_values, valid_actions)
             action = int(np.argmax(q_values))
 
         # epsilon を線形に減衰

@@ -22,34 +22,47 @@ BLACK_STONE_COLOR = (0, 0, 0) # 黒石
 WHITE_STONE_COLOR = (255, 255, 255) # 白石
 
 
+def draw_grid(screen, board_size):
+    """碁盤のグリッド線を描画するヘルパー"""
+    for i in range(board_size):
+        # 縦線の描画
+        start_pos = (i * CELL_SIZE + CELL_SIZE // 2, CELL_SIZE // 2)
+        end_pos = (
+            i * CELL_SIZE + CELL_SIZE // 2,
+            (board_size - 1) * CELL_SIZE + CELL_SIZE // 2,
+        )
+        pygame.draw.line(screen, LINE_COLOR, start_pos, end_pos, 2)
+
+        # 横線の描画
+        start_pos = (CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2)
+        end_pos = (
+            (board_size - 1) * CELL_SIZE + CELL_SIZE // 2,
+            i * CELL_SIZE + CELL_SIZE // 2,
+        )
+        pygame.draw.line(screen, LINE_COLOR, start_pos, end_pos, 2)
+
+
+def draw_stones(screen, board):
+    """盤面上の石を全て描画する"""
+    board_size = board.shape[0]
+
+    # 石のある場所だけを抽出してループする
+    for x, y in np.argwhere(board != 0):
+        stone = board[x, y]
+        center_pos = (
+            y * CELL_SIZE + CELL_SIZE // 2,
+            x * CELL_SIZE + CELL_SIZE // 2,
+        )
+        color = BLACK_STONE_COLOR if stone == 1 else WHITE_STONE_COLOR
+        pygame.draw.circle(screen, color, center_pos, CELL_SIZE // 2 - 2)
+
+
 def draw_board(screen, env):
-    """
-    PyGameウィンドウ上に碁盤と石を描画する。
-    env.game.board (0=空,1=黒,2=白)
-    """
+    """背景・グリッド・石をまとめて描画するメイン関数"""
     board_size = env.board_size
     screen.fill(BG_COLOR)
-
-    # グリッド線
-    for i in range(board_size):
-        # 縦線
-        start_pos = (i * CELL_SIZE + CELL_SIZE // 2, CELL_SIZE // 2)
-        end_pos   = (i * CELL_SIZE + CELL_SIZE // 2, (board_size - 1) * CELL_SIZE + CELL_SIZE // 2)
-        pygame.draw.line(screen, LINE_COLOR, start_pos, end_pos, 2)
-
-        # 横線
-        start_pos = (CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2)
-        end_pos   = ((board_size - 1) * CELL_SIZE + CELL_SIZE // 2, i * CELL_SIZE + CELL_SIZE // 2)
-        pygame.draw.line(screen, LINE_COLOR, start_pos, end_pos, 2)
-
-    # 石を描画
-    for x in range(board_size):
-        for y in range(board_size):
-            stone = env.game.board[x, y]
-            if stone != 0:
-                center_pos = (y * CELL_SIZE + CELL_SIZE // 2, x * CELL_SIZE + CELL_SIZE // 2)
-                color = BLACK_STONE_COLOR if stone == 1 else WHITE_STONE_COLOR
-                pygame.draw.circle(screen, color, center_pos, CELL_SIZE // 2 - 2)
+    draw_grid(screen, board_size)
+    draw_stones(screen, env.game.board)
 
 
 def play_game(env, black_agent, white_agent, visualize=True, fps=1):

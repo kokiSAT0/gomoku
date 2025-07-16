@@ -107,6 +107,30 @@ def find_chain_move(obs, valid_actions, player, n, directions=DIRECTIONS):
     return None
 
 # ----------------------------------------------------
+# 方策分布やQ値をマスクするユーティリティ関数
+# ----------------------------------------------------
+
+def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarray:
+    """有効手以外の確率を0にし、残った確率を正規化して返す"""
+    masked = np.zeros_like(probs)
+    for a in valid_actions:
+        masked[a] = probs[a]
+    total = masked.sum()
+    if total > 0.0:
+        masked /= total
+    return masked
+
+
+def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value: float = -1e9) -> np.ndarray:
+    """有効手以外のQ値を ``invalid_value`` で埋める"""
+    masked = q_values.copy()
+    mask = np.ones_like(q_values, dtype=bool)
+    for a in valid_actions:
+        mask[a] = False
+    masked[mask] = invalid_value
+    return masked
+
+# ----------------------------------------------------
 # ランダムエージェント (学習しない)
 # ----------------------------------------------------
 class RandomAgent:
@@ -335,19 +359,15 @@ class PolicyAgent:
             scaled_logits = logits / self.temp
             probs = F.softmax(scaled_logits, dim=1).cpu().numpy().flatten()
 
-        # 3) 環境ルールに基づいて invalid(無効)手を除外
+        # 3) 環境ルールに基づき無効手をマスク
         valid_actions = get_valid_actions(obs, env)
-        mask = np.zeros_like(probs, dtype=bool)
-        for a in valid_actions:
-            mask[a] = True
-        probs[~mask] = 0.0
+        probs = mask_probabilities(probs, valid_actions)
 
+        # マスク後に合計が0なら打てる場所が無い
         if probs.sum() == 0:
-            # 有効手が無い → 強制的に action=0 など
             return 0
 
-        # 4) 確率を再正規化してサンプリング
-        probs /= probs.sum()
+        # 4) 確率に従ってサンプリング
         action = np.random.choice(len(probs), p=probs)
 
         # 5) エピソードログに記録 (最初は報酬=0.0)
@@ -502,11 +522,8 @@ class QAgent:
             state_t = torch.tensor(obs.flatten(), dtype=torch.float32).unsqueeze(0)
             with torch.no_grad():
                 q_values = self.qnet(state_t).numpy().flatten()
-            # 有効手以外は -∞
-            mask = np.ones_like(q_values, dtype=bool)
-            for a in valid_actions:
-                mask[a] = False
-            q_values[mask] = -1e9
+            # 有効手以外は極端に低い値にする
+            q_values = mask_q_values(q_values, valid_actions)
             action = int(np.argmax(q_values))
 
         # epsilon を線形に減衰

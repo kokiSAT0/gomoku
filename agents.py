@@ -9,21 +9,41 @@ import torch.nn.functional as F
 import collections
 
 # ----------------------------------------------------
-# 有効手(空マス)を列挙する関数 (ルール制限を省略した簡単版)
+# 有効手(空マス)を列挙する関数
 # ----------------------------------------------------
 def get_valid_actions(obs, env):
     """
-    obs: (board_size, board_size) numpy配列
-    env: GomokuEnv (board_sizeなどを参照可能)
-    戻り値: 空マスの action (0~board_size*board_size -1) 一覧
+    与えられた盤面から、ゲームルール上有効な手(空きマス)を全て列挙して
+    action 番号のリストで返す。
+
+    Parameters
+    ----------
+    obs : np.ndarray
+        盤面を表す配列 (shape=(board_size, board_size))
+    env : GomokuEnv
+        有効手チェックに利用する環境
+
+    Returns
+    -------
+    List[int]
+        空マスであり実際に着手可能な action のリスト
     """
-    valid_actions = []
+
     board_size = obs.shape[0]
-    for x in range(board_size):
-        for y in range(board_size):
-            # can_place_stone でチェック
-            if env.can_place_stone(x, y):
-                valid_actions.append(x * board_size + y)
+
+    # 空きマスのみを抽出することで、全マスをループするより効率的にする
+    empty_positions = np.argwhere(obs == 0)
+
+    valid_actions = []
+    for x, y in empty_positions:
+        # np.argwhere の戻り値は numpy.int64 のため Python int に変換しておく
+        ix = int(x)
+        iy = int(y)
+
+        # 環境側のルール(打てる場所かどうか)を確認
+        if env.can_place_stone(ix, iy):
+            valid_actions.append(ix * board_size + iy)
+
     return valid_actions
 
 def longest_chain_length(obs, x, y, player, directions):
@@ -412,15 +432,20 @@ class QNet(nn.Module):
         return q
 
 class ReplayBuffer:
+    """経験再生用のシンプルなバッファ"""
+
     def __init__(self, capacity=10000):
+        # deque を用いて容量を超えると古いデータから自動で捨てる
         self.buffer = collections.deque(maxlen=capacity)
 
     def push(self, s, a, r, s_next, done):
+        """1ステップ分の遷移を保存"""
         self.buffer.append((s, a, r, s_next, done))
 
     def sample(self, batch_size):
+        """ランダムに batch_size 件取り出し numpy.array として返す"""
         batch = random.sample(self.buffer, batch_size)
-        s, a, r, s_next, d = zip(*batch)
+        s, a, r, s_next, d = map(np.array, zip(*batch))
         return s, a, r, s_next, d
 
     def __len__(self):
@@ -489,7 +514,7 @@ class QAgent:
     def train_on_batch(self):
         s, a, r, s_next, d = self.buffer.sample(self.batch_size)
 
-        # 修正: まとめて numpy.array に変換してから Tensor 化
+        # ReplayBuffer.sample() で numpy.array を受け取るのでそのまま利用
         states_np = np.array([arr.flatten() for arr in s], dtype=np.float32)
         next_states_np = np.array([arr.flatten() for arr in s_next], dtype=np.float32)
 

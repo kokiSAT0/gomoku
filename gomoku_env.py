@@ -304,6 +304,45 @@ class GomokuEnv:
             return 1.0 if current_player == 2 else -1.0
         return 0.0
 
+    def _compute_rewards(
+        self,
+        current_player: int,
+        opponent: int,
+        before_self: dict,
+        before_opp: dict,
+    ) -> float:
+        """
+        決着判定および中間報酬計算をまとめて行うヘルパー。
+
+        1. ``check_winner()`` による勝敗判定を実施。
+        2. ゲームが継続している場合は ``_calculate_intermediate_reward()`` を用いて
+           連の増減から報酬を算出する。
+        3. 最終報酬と中間報酬を合算して返す。
+        """
+
+        # --- 勝敗判定 --------------------------------------------------
+        winner = self.game.check_winner()
+        reward_final = 0.0
+        if winner != 0:
+            # 勝ち(1 or 2) または引き分け(-1)
+            self.done = True
+            self.winner = winner
+            reward_final = self._final_reward(winner, current_player)
+        else:
+            self.done = False
+
+        # --- 中間報酬の算出 --------------------------------------------
+        reward_intermediate = 0.0
+        if not self.done:
+            reward_intermediate = self._calculate_intermediate_reward(
+                current_player,
+                opponent,
+                before_self,
+                before_opp,
+            )
+
+        return reward_final + reward_intermediate
+
     def step(self, action):
         """
         ``action`` は ``0`` から ``board_size**2 - 1`` の整数。
@@ -326,7 +365,7 @@ class GomokuEnv:
         # 座標に変換
         x, y = self.action_to_coord(action)
 
-        # 無効手チェック
+        # 1. 無効手チェック
         if not self.can_place_stone(x, y):
             self.done = True
             self.winner = 0  # 勝者なし
@@ -334,34 +373,22 @@ class GomokuEnv:
                 "winner": 0, "reason": "invalid_move"
             }
 
-        # 有効手なので石を置く
+        # 2. 石を置く処理
         self.game.place_stone(x, y)
         self.turn_count += 1
 
-        # 決着判定
-        winner = self.game.check_winner()
-        reward_final = 0.0
-        if winner != 0:
-            # 勝ち(1 or 2) または引き分け(-1)
-            self.done = True
-            self.winner = winner
-            reward_final = self._final_reward(winner, current_player)
-        else:
-            self.done = False
+        # 3. 勝敗判定
+        # 4. 中間報酬の算出
+        total_reward = self._compute_rewards(
+            current_player,
+            opponent,
+            before_self,
+            before_opp,
+        )
 
-        # 中間報酬(連の増減)
-        reward_intermediate = 0.0
-        if not self.done:
-            reward_intermediate = self._calculate_intermediate_reward(
-                current_player,
-                opponent,
-                before_self,
-                before_opp,
-            )
-
-        total_reward = reward_final + reward_intermediate
-
-        return self._get_observation(), total_reward, self.done, {"winner": self.winner}
+        return self._get_observation(), total_reward, self.done, {
+            "winner": self.winner
+        }
 
     def render(self):
         """人間向けのテキスト表示"""

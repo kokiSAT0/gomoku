@@ -1,0 +1,8 @@
+# このプロジェクトで必要となる Python ライブラリ一覧
+# 各行のパッケージは pip install -r requirements.txt で一括インストールできます
+numpy
+torch
+pygame
+tqdm
+matplotlib
+seaborn

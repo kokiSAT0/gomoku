@@ -117,19 +117,28 @@ def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value:
 
 
 class ReplayBuffer:
-    """経験再生用のシンプルなバッファ"""
+    """経験再生用のシンプルなバッファ
+
+    ゲーム中に得られる状態 ``s``、行動 ``a``、報酬 ``r`` などの遷移を
+    一時的に蓄積し、学習時にランダムサンプリングしてミニバッチとして
+    取り出す用途を想定している。典型的な強化学習ループでは、各ステップ
+    ごとに :meth:`push` で追加し、学習関数内で :meth:`sample` を呼び出す。
+    """
 
     def __init__(self, capacity: int = 10000) -> None:
         self.buffer: collections.deque = collections.deque(maxlen=capacity)
 
     def push(self, s: np.ndarray, a: int, r: float, s_next: np.ndarray, done: bool) -> None:
         """1ステップ分の遷移を保存"""
+        # s, s_next は (board_size, board_size) の盤面配列を想定
+        # 例: board_size=9 の場合は (9, 9) の二次元配列
         self.buffer.append((s, a, r, s_next, done))
 
     def sample(self, batch_size: int):
         """ランダムに ``batch_size`` 件取り出し NumPy 配列として返す"""
         batch = random.sample(self.buffer, batch_size)
         s, a, r, s_next, d = zip(*batch)
+        # states, next_states: (batch_size, board_size, board_size)
         states = np.stack(s).astype(np.float32)
         next_states = np.stack(s_next).astype(np.float32)
         actions = np.array(a, dtype=np.int64)

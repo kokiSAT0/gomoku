@@ -232,29 +232,34 @@ class FourThreePriorityAgent:
 
 class LongestChainAgent:
     """
-    置いたときに最長の連ができる手を優先する簡易ヒューリスティック
+    盤上に仮置きしたとき最も長い連が得られる手を選択するヒューリスティックエージェント。
     """
+
+    # 各方向をクラス変数として保持しておく
+    DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
     def __init__(self):
+        # 特別な内部状態は持たない
         pass
 
     def get_action(self, obs, env):
+        """盤面と環境から行動を決定して返す"""
         valid_actions = get_valid_actions(obs, env)
         if not valid_actions:
-            return 0
+            return 0  # 打てる場所が無い場合は 0 を返す
 
         current_player = env.current_player
         best_score = -1
-        best_actions = []
-        directions = [(1,0),(0,1),(1,1),(1,-1)]
+        best_actions = []  # 同点ならランダムに選ぶためリストに保持
 
         for a in valid_actions:
             x = a // env.board_size
             y = a % env.board_size
-            # 仮置き
-            obs[x,y] = current_player
-            score = self.get_longest_chain(obs, x, y, current_player, directions)
-            obs[x,y] = 0
 
+            # 仮に石を置いて連の長さを評価
+            score = self._evaluate_move(obs, x, y, current_player)
+
+            # より良い手なら更新、同点なら追加
             if score > best_score:
                 best_score = score
                 best_actions = [a]
@@ -263,9 +268,12 @@ class LongestChainAgent:
 
         return random.choice(best_actions)
 
-    def get_longest_chain(self, obs, x, y, player, directions):
-        """最長連結長を返す (ヘルパー関数のラッパー)"""
-        return longest_chain_length(obs, x, y, player, directions)
+    def _evaluate_move(self, obs, x, y, player):
+        """石を一時的に置いて連の長さを計算するヘルパー"""
+        obs[x, y] = player
+        score = longest_chain_length(obs, x, y, player, self.DIRECTIONS)
+        obs[x, y] = 0
+        return score
 
     def record_transition(self, s, a, r, s_next, done):
         pass

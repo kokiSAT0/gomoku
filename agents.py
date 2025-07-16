@@ -26,8 +26,7 @@ MODEL_DIR = Path(__file__).resolve().parent / "models"
 MODEL_DIR.mkdir(exist_ok=True)
 
 
-@dataclass
-@dataclass
+@dataclass  # dataclass を重複して指定する必要はないので一つだけにする
 class EpisodeStep:
     """PolicyAgentの1ステップ分の情報を保持するデータクラス"""
 

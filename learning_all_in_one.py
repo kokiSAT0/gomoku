@@ -875,9 +875,20 @@ class ReplayBuffer:
         self.buffer.append((s, a, r, s_next, done))
 
     def sample(self, batch_size):
+        """ランダムに ``batch_size`` 件を取り出し数値配列で返す"""
+
+        # リプレイバッファからランダムに抽出
         batch = random.sample(self.buffer, batch_size)
         s, a, r, s_next, d = zip(*batch)
-        return s, a, r, s_next, d
+
+        # dtype を明示しつつ stack して扱いやすくする
+        states = np.stack(s).astype(np.float32)
+        next_states = np.stack(s_next).astype(np.float32)
+        actions = np.array(a, dtype=np.int64)
+        rewards = np.array(r, dtype=np.float32)
+        dones = np.array(d, dtype=np.float32)
+
+        return states, actions, rewards, next_states, dones
 
     def __len__(self):
         return len(self.buffer)
@@ -959,8 +970,9 @@ class QAgent:
     def train_on_batch(self):
         s, a, r, s_next, d = self.buffer.sample(self.batch_size)
 
-        states_np = np.array([arr.flatten() for arr in s], dtype=np.float32)
-        next_states_np = np.array([arr.flatten() for arr in s_next], dtype=np.float32)
+        # sample() で float32 の配列として受け取れるので reshape のみ行う
+        states_np = s.reshape(self.batch_size, -1)
+        next_states_np = s_next.reshape(self.batch_size, -1)
 
         states_t = torch.from_numpy(states_np)
         actions_t = torch.tensor(a, dtype=torch.long)

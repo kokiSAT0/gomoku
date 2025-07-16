@@ -145,6 +145,11 @@ def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value:
 # ランダムエージェント (学習しない)
 # ----------------------------------------------------
 class RandomAgent:
+    """
+    ランダムに着手するだけの単純なエージェント。
+
+    学習は一切行わず、合法手の中からランダムに行動を選択する。
+    """
     def __init__(self):
         pass
 

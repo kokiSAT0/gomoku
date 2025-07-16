@@ -6,11 +6,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import collections
 from dataclasses import dataclass
 from pathlib import Path
 
-from utils import opponent_player
+from utils import opponent_player, get_valid_actions, mask_probabilities, mask_q_values, ReplayBuffer
 
 # ----------------------------------------------------
 # 学習済みモデルを保存するディレクトリ
@@ -21,16 +20,6 @@ MODEL_DIR.mkdir(exist_ok=True)
 
 
 @dataclass
-class Transition:
-    """経験再生バッファに保存する1ステップ分の遷移データ"""
-
-    state: np.ndarray
-    action: int
-    reward: float
-    next_state: np.ndarray
-    done: bool
-
-
 @dataclass
 class EpisodeStep:
     """PolicyAgentの1ステップ分の情報を保持するデータクラス"""
@@ -47,41 +36,6 @@ DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
 # ----------------------------------------------------
 # 有効手(空マス)を列挙する関数
 # ----------------------------------------------------
-def get_valid_actions(obs, env):
-    """
-    与えられた盤面から、ゲームルール上有効な手(空きマス)を全て列挙して
-    action 番号のリストで返す。
-
-    Parameters
-    ----------
-    obs : np.ndarray
-        盤面を表す配列 (shape=(board_size, board_size))
-    env : GomokuEnv
-        有効手チェックに利用する環境
-
-    Returns
-    -------
-    List[int]
-        空マスであり実際に着手可能な action のリスト
-    """
-
-    board_size = obs.shape[0]
-
-    # 空きマスのみを抽出することで、全マスをループするより効率的にする
-    empty_positions = np.argwhere(obs == 0)
-
-    valid_actions = []
-    for x, y in empty_positions:
-        # np.argwhere の戻り値は numpy.int64 のため Python int に変換しておく
-        ix = int(x)
-        iy = int(y)
-
-        # 環境側のルール(打てる場所かどうか)を確認
-        if env.can_place_stone(ix, iy):
-            valid_actions.append(env.coord_to_action(ix, iy))
-
-    return valid_actions
-
 def longest_chain_length(obs, x, y, player, directions=DIRECTIONS):
     """指定座標に石を置いたと仮定したときの最長連結長を返すヘルパー"""
     board_size = obs.shape[0]
@@ -129,25 +83,8 @@ def find_chain_move(obs, valid_actions, player, n, directions=DIRECTIONS):
 # 方策分布やQ値をマスクするユーティリティ関数
 # ----------------------------------------------------
 
-def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarray:
-    """有効手以外の確率を0にし、残った確率を正規化して返す"""
-    masked = np.zeros_like(probs)
-    for a in valid_actions:
-        masked[a] = probs[a]
-    total = masked.sum()
-    if total > 0.0:
-        masked /= total
-    return masked
 
 
-def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value: float = -1e9) -> np.ndarray:
-    """有効手以外のQ値を ``invalid_value`` で埋める"""
-    masked = q_values.copy()
-    mask = np.ones_like(q_values, dtype=bool)
-    for a in valid_actions:
-        mask[a] = False
-    masked[mask] = invalid_value
-    return masked
 
 # ----------------------------------------------------
 # ランダムエージェント (学習しない)
@@ -488,38 +425,6 @@ class QNet(nn.Module):
         q = self.fc2(h)
         return q
 
-class ReplayBuffer:
-    """経験再生用のシンプルなバッファ"""
-
-    def __init__(self, capacity: int = 10000) -> None:
-        # deque は最大長を超えると古いデータから捨ててくれる
-        self.buffer: collections.deque[Transition] = collections.deque(maxlen=capacity)
-
-    def push(self, s: np.ndarray, a: int, r: float, s_next: np.ndarray, done: bool) -> None:
-        """1ステップ分の遷移を保存"""
-        # Transition dataclass にまとめて保持
-        self.buffer.append(Transition(s, a, r, s_next, done))
-
-    def sample(self, batch_size: int):
-        """ランダムに ``batch_size`` 件取り出し NumPy 配列として返す"""
-
-        # random.sample() で ``batch_size`` 件ランダムに取り出す
-        batch = random.sample(self.buffer, batch_size)
-
-        # 盤面状態はそのまま stack して (batch, board, board) の形にする
-        # dtype を明示することで計算時の型変換を防ぐ
-        states = np.stack([t.state for t in batch]).astype(np.float32)
-        next_states = np.stack([t.next_state for t in batch]).astype(np.float32)
-
-        # 行動、報酬、終了フラグも同様に numpy 配列化
-        actions = np.array([t.action for t in batch], dtype=np.int64)
-        rewards = np.array([t.reward for t in batch], dtype=np.float32)
-        dones = np.array([t.done for t in batch], dtype=np.float32)
-
-        return states, actions, rewards, next_states, dones
-
-    def __len__(self):
-        return len(self.buffer)
 
 class QAgent:
     def __init__(

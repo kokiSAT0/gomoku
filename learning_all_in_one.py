@@ -4,11 +4,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import random
-import collections
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from pathlib import Path
-from utils import moving_average, opponent_player
+from utils import moving_average, opponent_player, get_valid_actions, mask_probabilities, mask_q_values, ReplayBuffer
 
 # 学習済みモデルを保存するディレクトリ
 MODEL_DIR = Path(__file__).resolve().parent / "models"
@@ -376,43 +375,13 @@ class GomokuEnv:
 # 2) 各種エージェント
 ########################################################
 
-def get_valid_actions(obs, env):
-    """
-    obs: (board_size, board_size) numpy配列
-    env: GomokuEnv (board_sizeなどを参照可能)
-    戻り値: 空マスで、かつ envルールで打てる action (0~board_size*board_size -1) 一覧
-    """
-    valid_actions = []
-    board_size = obs.shape[0]
-    for x in range(board_size):
-        for y in range(board_size):
-            if env.can_place_stone(x, y):
-                valid_actions.append(env.coord_to_action(x, y))
-    return valid_actions
 
 # ----------------------------------------------------
 # 方策分布/Q値のマスク処理用ヘルパー
 # ----------------------------------------------------
 
-def mask_probabilities(probs: np.ndarray, valid_actions: list[int]) -> np.ndarray:
-    """有効手のみ残して正規化した確率配列を返す"""
-    masked = np.zeros_like(probs)
-    for a in valid_actions:
-        masked[a] = probs[a]
-    total = masked.sum()
-    if total > 0.0:
-        masked /= total
-    return masked
 
 
-def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value: float = -1e9) -> np.ndarray:
-    """無効手のQ値を ``invalid_value`` で置き換える"""
-    masked = q_values.copy()
-    mask = np.ones_like(masked, dtype=bool)
-    for a in valid_actions:
-        mask[a] = False
-    masked[mask] = invalid_value
-    return masked
 
 
 # ----------------------------------------------------
@@ -871,31 +840,6 @@ class QNet(nn.Module):
         return q
 
 
-class ReplayBuffer:
-    def __init__(self, capacity=10000):
-        self.buffer = collections.deque(maxlen=capacity)
-
-    def push(self, s, a, r, s_next, done):
-        self.buffer.append((s, a, r, s_next, done))
-
-    def sample(self, batch_size):
-        """ランダムに ``batch_size`` 件を取り出し数値配列で返す"""
-
-        # リプレイバッファからランダムに抽出
-        batch = random.sample(self.buffer, batch_size)
-        s, a, r, s_next, d = zip(*batch)
-
-        # dtype を明示しつつ stack して扱いやすくする
-        states = np.stack(s).astype(np.float32)
-        next_states = np.stack(s_next).astype(np.float32)
-        actions = np.array(a, dtype=np.int64)
-        rewards = np.array(r, dtype=np.float32)
-        dones = np.array(d, dtype=np.float32)
-
-        return states, actions, rewards, next_states, dones
-
-    def __len__(self):
-        return len(self.buffer)
 
 
 def hard_update(dst_net, src_net):

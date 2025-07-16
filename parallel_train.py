@@ -1,4 +1,10 @@
 # parallel_train.py
+
+"""複数プロセスによる自己対戦でモデルを学習するサンプルスクリプト。
+
+REINFORCE 法を用いてワーカーごとにエピソードを収集し、
+メインプロセスでまとめてパラメータ更新を行う。
+"""
 import numpy as np
 import multiprocessing
 from tqdm import tqdm

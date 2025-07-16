@@ -1,4 +1,11 @@
 # play_vs_model.py
+
+"""端末上で学習済みモデルと対戦するための簡易インタフェース。
+
+黒番に ``PolicyAgent`` を読み込み、白番は ``RandomAgent`` との対戦を
+1 ゲームだけ実行する。コマンドラインから次のように利用する。
+    $ python play_vs_model.py
+"""
 import torch
 import numpy as np
 from pathlib import Path

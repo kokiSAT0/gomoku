@@ -1,3 +1,9 @@
+"""ゲーム環境から学習ループまでを一つにまとめた実験用スクリプト。
+
+五目並べ環境の実装と強化学習によるエージェント学習を
+このファイルだけで確認できる。
+"""
+
 import numpy as np
 import torch
 import torch.nn as nn

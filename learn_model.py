@@ -1,5 +1,11 @@
 # learn_model.py
 
+"""強化学習エージェントを自己対戦させて学習させるためのスクリプト。
+
+PolicyAgent や QAgent の学習例が含まれており、
+関数呼び出しを通して各種パラメータを調整できる。
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path

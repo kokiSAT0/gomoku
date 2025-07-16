@@ -67,6 +67,14 @@ def play_one_episode(env, agent_black, agent_white, policy_color="black"):
     winner = info["winner"]
     turn_count = env.turn_count
 
+    # 勝敗が決したあと、学習対象が負けていたら最後の行動に敗北報酬を与える
+    if (policy_color == "black" and winner == 2) or (
+        policy_color == "white" and winner == 1
+    ):
+        policy_agent.record_reward(-1.0)
+    elif winner == -1:
+        policy_agent.record_reward(0.0)
+
     # 今エピソードで追加された分のログを抽出
     end_log_len = len(policy_agent.episode_log)
     episode_log = policy_agent.episode_log[start_log_len:end_log_len]

@@ -198,49 +198,52 @@ def play_agents_vs_agents(
 # ------------------------------------------------------------------------------
 def create_agent(agent_type, board_size, agent_path=None, agent_params=None):
     """
-    agent_typeに応じて、適切なエージェントインスタンスを作成して返す。
-      - "policy" or "q" => それぞれPolicyAgent, QAgent を newし、必要なら model.load()
-      - "random" => RandomAgent
-      - "immediate" => ImmediateWinBlockAgent
-      - "fourthree" => FourThreePriorityAgent
-      - "longest" => LongestChainAgent
+    agent_type の文字列に応じてエージェントを生成するヘルパー関数。
+
+    - "policy"/"q" などモデルを要するものはファイル読み込みにも対応。
+    - 該当しない文字列が渡された場合は RandomAgent を返す。
     """
+
     if agent_params is None:
         agent_params = {}
 
-    # 1) PolicyAgent
-    if agent_type.lower() == "policy":
-        from agents import PolicyAgent
-        agent = PolicyAgent(board_size=board_size, **agent_params)
+    # 文字列を小文字化しておく
+    key = agent_type.lower()
+
+    # 同義語をまとめる辞書
+    alias = {
+        "rand": "random",
+        "immediatewinblockagent": "immediate",
+        "fourthreepriorityagent": "fourthree",
+        "longestchainagent": "longest",
+    }
+    key = alias.get(key, key)
+
+    # エージェントクラスへのマッピング
+    class_table = {
+        "policy": PolicyAgent,
+        "q": QAgent,
+        "random": RandomAgent,
+        "immediate": ImmediateWinBlockAgent,
+        "fourthree": FourThreePriorityAgent,
+        "longest": LongestChainAgent,
+    }
+
+    if key in ("policy", "q"):
+        # 学習済みモデルを読み込む可能性があるエージェント
+        AgentClass = class_table[key]
+        agent = AgentClass(board_size=board_size, **agent_params)
         if agent_path:
             agent.load_model(agent_path)
         return agent
 
-    # 2) QAgent
-    elif agent_type.lower() == "q":
-        from agents import QAgent
-        agent = QAgent(board_size=board_size, **agent_params)
-        if agent_path:
-            agent.load_model(agent_path)
-        return agent
+    if key in class_table:
+        # ヒューリスティック系 / RandomAgent
+        AgentClass = class_table[key]
+        return AgentClass()
 
-    # 3) ヒューリスティック or ランダム
-    elif agent_type.lower() in ["random", "rand"]:
-        from agents import RandomAgent
-        return RandomAgent()
-    elif agent_type.lower() in ["immediate", "immediatewinblockagent"]:
-        from agents import ImmediateWinBlockAgent
-        return ImmediateWinBlockAgent()
-    elif agent_type.lower() in ["fourthree", "fourthreepriorityagent"]:
-        from agents import FourThreePriorityAgent
-        return FourThreePriorityAgent()
-    elif agent_type.lower() in ["longest", "longestchainagent"]:
-        from agents import LongestChainAgent
-        return LongestChainAgent()
-
-    # 万が一該当しなければRandomAgent
+    # 万が一該当しなければ RandomAgent で代替
     print(f"[WARNING] Unknown agent_type={agent_type}, fallback to RandomAgent.")
-    from agents import RandomAgent
     return RandomAgent()
 
 

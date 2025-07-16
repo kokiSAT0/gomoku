@@ -26,6 +26,32 @@ def get_valid_actions(obs, env):
                 valid_actions.append(x * board_size + y)
     return valid_actions
 
+def longest_chain_length(obs, x, y, player, directions):
+    """指定座標に石を置いたと仮定したときの最長連結長を返すヘルパー"""
+    board_size = obs.shape[0]
+    max_len = 1
+    for dx, dy in directions:
+        count = 1
+        # 正方向へ伸びている石を数える
+        cx, cy = x + dx, y + dy
+        while 0 <= cx < board_size and 0 <= cy < board_size and obs[cx, cy] == player:
+            count += 1
+            cx += dx
+            cy += dy
+        # 逆方向へも伸ばす
+        cx, cy = x - dx, y - dy
+        while 0 <= cx < board_size and 0 <= cy < board_size and obs[cx, cy] == player:
+            count += 1
+            cx -= dx
+            cy -= dy
+        if count > max_len:
+            max_len = count
+    return max_len
+
+def has_n_in_a_row(obs, x, y, player, directions, n):
+    """n連以上が成立するかどうかを判定"""
+    return longest_chain_length(obs, x, y, player, directions) >= n
+
 # ----------------------------------------------------
 # ランダムエージェント (学習しない)
 # ----------------------------------------------------
@@ -99,24 +125,8 @@ class ImmediateWinBlockAgent:
         return None
 
     def check_5_in_a_row(self, obs, x, y, player, directions):
-        board_size = obs.shape[0]
-        for dx, dy in directions:
-            count = 1
-            # 正
-            cx, cy = x+dx, y+dy
-            while 0 <= cx<board_size and 0 <= cy<board_size and obs[cx,cy] == player:
-                count += 1
-                cx += dx
-                cy += dy
-            # 逆
-            cx, cy = x-dx, y-dy
-            while 0 <= cx<board_size and 0 <= cy<board_size and obs[cx,cy] == player:
-                count += 1
-                cx -= dx
-                cy -= dy
-            if count >= 5:
-                return True
-        return False
+        """5連になるかどうかをヘルパーで判定"""
+        return has_n_in_a_row(obs, x, y, player, directions, 5)
 
     def record_transition(self, s, a, r, s_next, done):
         pass
@@ -184,21 +194,8 @@ class FourThreePriorityAgent:
         return None
 
     def check_n_chain(self, obs, x, y, player, directions, n):
-        for dx, dy in directions:
-            count = 1
-            cx, cy = x+dx, y+dy
-            while 0 <= cx<obs.shape[0] and 0 <= cy<obs.shape[1] and obs[cx,cy] == player:
-                count += 1
-                cx += dx
-                cy += dy
-            cx, cy = x-dx, y-dy
-            while 0 <= cx<obs.shape[0] and 0 <= cy<obs.shape[1] and obs[cx,cy] == player:
-                count += 1
-                cx -= dx
-                cy -= dy
-            if count >= n:
-                return True
-        return False
+        """n連以上になるかを判定"""
+        return has_n_in_a_row(obs, x, y, player, directions, n)
 
     def record_transition(self, s, a, r, s_next, done):
         pass
@@ -247,23 +244,8 @@ class LongestChainAgent:
         return random.choice(best_actions)
 
     def get_longest_chain(self, obs, x, y, player, directions):
-        max_len = 1
-        for dx, dy in directions:
-            count = 1
-            # 正
-            cx, cy = x+dx, y+dy
-            while 0 <= cx<obs.shape[0] and 0 <= cy<obs.shape[1] and obs[cx,cy] == player:
-                count += 1
-                cx += dx
-                cy += dy
-            # 逆
-            cx, cy = x-dx, y-dy
-            while 0 <= cx<obs.shape[0] and 0 <= cy<obs.shape[1] and obs[cx,cy] == player:
-                count += 1
-                cx -= dx
-                cy -= dy
-            max_len = max(max_len, count)
-        return max_len
+        """最長連結長を返す (ヘルパー関数のラッパー)"""
+        return longest_chain_length(obs, x, y, player, directions)
 
     def record_transition(self, s, a, r, s_next, done):
         pass

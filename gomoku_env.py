@@ -213,6 +213,16 @@ class GomokuEnv:
         self.winner = 0
         self.turn_count = 0
         return self._get_observation()
+
+    def action_to_coord(self, action: int) -> tuple[int, int]:
+        """action 番号を ``(x, y)`` 座標へ変換するヘルパー"""
+        x = action // self.board_size
+        y = action % self.board_size
+        return x, y
+
+    def coord_to_action(self, x: int, y: int) -> int:
+        """``(x, y)`` 座標を action 番号へ変換するヘルパー"""
+        return x * self.board_size + y
     
     def can_place_stone(self, x, y):
         """
@@ -276,9 +286,9 @@ class GomokuEnv:
 
     def step(self, action):
         """
-        action は 0 ~ (board_size * board_size - 1) の整数。
-        これを (x, y) = (action // board_size, action % board_size) として打つ。
-        戻り値: (obs, reward, done, info)
+        ``action`` は ``0`` から ``board_size**2 - 1`` の整数。
+        ``action_to_coord()`` を用いて盤面座標 ``(x, y)`` に変換して着手する。
+        戻り値: ``(obs, reward, done, info)``
         """
         if self.done:
             # 既に終わっている場合、報酬0で終了状態を返す
@@ -293,8 +303,7 @@ class GomokuEnv:
         before_opp = count_chains_open_ends(self.game.board, opponent)
 
         # 座標に変換
-        x = action // self.board_size
-        y = action % self.board_size
+        x, y = self.action_to_coord(action)
 
         # 無効手チェック
         if not self.can_place_stone(x, y):

@@ -59,7 +59,7 @@ def get_valid_actions(obs, env):
 
         # 環境側のルール(打てる場所かどうか)を確認
         if env.can_place_stone(ix, iy):
-            valid_actions.append(ix * board_size + iy)
+            valid_actions.append(env.coord_to_action(ix, iy))
 
     return valid_actions
 
@@ -273,8 +273,8 @@ class LongestChainAgent:
         best_actions = []  # 同点ならランダムに選ぶためリストに保持
 
         for a in valid_actions:
-            x = a // env.board_size
-            y = a % env.board_size
+            # action 番号を座標へ変換
+            x, y = env.action_to_coord(a)
 
             # 仮に石を置いて連の長さを評価
             score = self._evaluate_move(obs, x, y, current_player)

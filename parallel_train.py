@@ -81,7 +81,8 @@ def train_worker(
     agent_params,
     opponent_class=ImmediateWinBlockAgent,
     env_params=None,
-    policy_color="black"
+    policy_color="black",
+    initial_state_dict=None,
 ):
     """
     ワーカープロセスごとにエージェントを作成し、複数エピソードを実行してデータを返す関数。
@@ -90,6 +91,7 @@ def train_worker(
       - opponent_class: 対戦相手エージェントのクラス
       - env_params: GomokuEnv のパラメータ(dict)
       - policy_color: PolicyAgent を "black" か "white" のどちらで学習するか
+      - initial_state_dict: メインプロセスから渡される初期重み(dict)
 
     戻り値: local_data (リスト)。要素は (episode_log, winner, turn_count) のタプル。
     """
@@ -98,6 +100,9 @@ def train_worker(
 
     # 学習対象のPolicyAgent
     policy_agent = PolicyAgent(board_size=board_size, **agent_params)
+    # 初期重みが渡されている場合はロード
+    if initial_state_dict is not None:
+        policy_agent.model.load_state_dict(initial_state_dict)
     # 対戦相手
     opponent_agent = opponent_class()
 
@@ -152,6 +157,7 @@ def train_master(
       - agent_params: 学習対象PolicyAgentの追加パラメータ(dict)。Noneなら内部で作成
       - opponent_class: 対戦相手として使うエージェントのクラス
       - policy_color: "black" なら先手、"white" なら後手を学習させる
+        (ワーカーにはこのメインエージェントの重みを渡して同期させる)
 
     戻り値: (学習済みpolicy_agent, 各エピソードの報酬リスト)
     """
@@ -186,6 +192,7 @@ def train_master(
             eppw = batch_size // num_workers
 
             # 各ワーカーに渡すパラメータ
+            # メインエージェントの重み(state_dict)をコピーして送る
             worker_args = []
             for wid in range(num_workers):
                 worker_args.append(
@@ -197,6 +204,7 @@ def train_master(
                         opponent_class,
                         env_params,
                         policy_color,
+                        {k: v.cpu() for k, v in policy_agent.model.state_dict().items()},
                     )
                 )
             # 並列実行 => 各ワーカーが eppwエピソードずつ回して (episode_log, winner) のリストを返す

@@ -39,7 +39,7 @@ def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.p
     # ゲーム環境の初期化
     obs = env.reset()
     done = False
-    
+
     while not done:
         # どちらの手番かで使用するエージェントを切り替える
         if env.current_player == 1:  # 黒
@@ -50,7 +50,7 @@ def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.p
         # 行動を環境へ適用し盤面を更新
         obs, reward, done, info = env.step(action)
         env.render()  # 盤面を表示
-    
+
     # ゲーム終了後に勝者を判定
     winner = info["winner"]
     if winner == 1:

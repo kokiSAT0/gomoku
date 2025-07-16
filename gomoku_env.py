@@ -157,7 +157,7 @@ class GomokuEnv:
     """
     五目並べを「強化学習用の環境」としてラップし、
     中間報酬(連を作る・相手の連をブロックする)を追加したバージョン。
-    
+
     使い方:
       env = GomokuEnv()
       obs = env.reset()
@@ -226,14 +226,14 @@ class GomokuEnv:
     def coord_to_action(self, x: int, y: int) -> int:
         """``(x, y)`` 座標を action 番号へ変換するヘルパー"""
         return x * self.board_size + y
-    
+
     def can_place_stone(self, x, y):
         """
         自分の環境ルールに照らして(x,y)が有効手かどうかをチェック。
         - 1) 初手は中央強制の場合、(turn_count == 0) なら (x==center, y==center) か？
         - 2) adjacency_range 制限に引っかからないか？
         - 3) 盤外 or 既に石ありでないか？
-        
+
         全て満たせばTrue, そうでなければFalse。
         """
         # 1) 初手は中央のみ
@@ -241,12 +241,12 @@ class GomokuEnv:
             center = self.board_size // 2
             if not (x == center and y == center):
                 return False
-        
+
         # 2) adjacency_rangeチェック(コメントアウトで無効化)
         # if (self.turn_count >= 1) and (self.adjacency_range is not None) and (self.adjacency_range > 0):
         #     if not self._is_adjacent_to_stone(x, y, self.adjacency_range):
         #         return False
-        
+
         # 3) 盤外 or 既に石あり
         if not self.game.is_valid_move(x, y):
             return False

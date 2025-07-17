@@ -149,7 +149,11 @@ def main():
         show=False,
     )
 
-    # 簡易評価
+    # ------------------------------------------------------------
+    # 学習したモデルの簡易評価
+    #   ConvPolicyNet で学習しているため
+    #   評価時にも同じネットワーク設定を渡す
+    # ------------------------------------------------------------
     win_rate = evaluate_model(
         policy_path=save_path,
         opponent_agent=LongestChainAgent(),
@@ -157,6 +161,7 @@ def main():
         board_size=board_size,
         device=device,
         policy_color=policy_color,
+        network_type="conv",
     )
     print(f"学習後の勝率: {win_rate:.2f}")
 

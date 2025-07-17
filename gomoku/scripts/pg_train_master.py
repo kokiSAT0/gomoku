@@ -25,13 +25,23 @@ def train_worker(
     env_params=None,
     policy_color="black",
     initial_state_dict=None,
+    initial_temp=None,
 ):
-    """ワーカー側でエピソードを実行しデータを返す関数"""
+    """ワーカー側でエピソードを実行しデータを返す関数
+
+    ``initial_temp`` で方策の初期温度を指定し、温度を同期させる。
+    """
     if env_params is None:
         env_params = {}
 
     # 学習対象エージェントを生成
-    policy_agent = PolicyAgent(board_size=board_size, **agent_params)
+    # 親プロセスから現在の温度を受け取り初期値として設定する
+    if initial_temp is None:
+        policy_agent = PolicyAgent(board_size=board_size, **agent_params)
+    else:
+        policy_agent = PolicyAgent(
+            board_size=board_size, temp=initial_temp, **agent_params
+        )
 
     # メインプロセスから渡された重みがあれば読み込む
     if initial_state_dict is not None:
@@ -59,6 +69,8 @@ def train_worker(
             policy_color=policy_color,
         )
         local_data.append((episode_log, winner, turn_count))
+        # 各エピソード終了後に温度を少し下げることで探索度を減少させる
+        policy_agent.update_temperature()
 
     return local_data
 
@@ -114,6 +126,8 @@ def train_master(
                         env_params,
                         policy_color,
                         {k: v.cpu() for k, v in policy_agent.model.state_dict().items()},
+                        # 温度減衰を同期させるため、現在の温度をワーカーへ渡す
+                        policy_agent.temp,
                     )
                 )
 
@@ -147,6 +161,8 @@ def train_master(
 
             # バッチ分のログで学習
             loss = update_with_trajectories(policy_agent, all_episodes)
+            # 学習後にも温度を減衰させ、全体の探索率を徐々に下げる
+            policy_agent.update_temperature()
 
     return policy_agent, all_rewards, all_winners, all_turn_counts
 

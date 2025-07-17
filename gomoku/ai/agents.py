@@ -1,7 +1,8 @@
 """各種エージェントクラスを集約するパッケージモジュール"""
 
 # ヒューリスティック系エージェント
-from .heuristic_agents import (
+# 新たに ``heuristic`` サブパッケージへ分割
+from .heuristic import (
     RandomAgent,
     ImmediateWinBlockAgent,
     FourThreePriorityAgent,

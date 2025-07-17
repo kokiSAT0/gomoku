@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 
 from ..core.gomoku_env import GomokuEnv
 from ..core.utils import moving_average, FIGURE_DIR
-from .play_with_pygame import play_game
+# play_with_pygame.py にはサンプル用の実行コードのみ存在するため
+# 実際のゲームロジックを提供する play_utils.py から ``play_game`` を読み込む
+from .play_utils import play_game
 
 
 def train_agents(env, black_agent, white_agent, episodes=1000):

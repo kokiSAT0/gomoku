@@ -87,6 +87,8 @@ python -m gomoku.scripts.evaluate_models
 必要に応じて `policy_path` や `opponent_agent` を変更してください。
 全結合ネットワークで学習したモデルを評価する場合は
 `network_type="dense"` を引数に指定します。
+`QAgent` を評価したい場合は `--agent_type q --q_path <モデルファイル>` を
+付与してください。
 
 ### 5. 並列学習や総当たり戦
 

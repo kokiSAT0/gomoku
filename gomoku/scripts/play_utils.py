@@ -61,6 +61,43 @@ def play_game(env: GomokuEnv, black_agent, white_agent, visualize: bool = True, 
     return winner, black_reward, turn_count
 
 
+def play_game_text(env: GomokuEnv, black_agent, white_agent, pause: float = 0.0):
+    """テキストのみで 1 ゲームを実行し盤面を逐次表示する"""
+
+    # --- 環境を初期化し最初の盤面を表示 -----------------------------
+    obs = env.reset()
+    done = False
+    env.render()
+
+    # --- ゲームが終わるまで行動と描画を繰り返す ---------------------
+    while not done:
+        # 手番に応じてエージェントを切り替える
+        if env.current_player == 1:
+            action = black_agent.get_action(obs, env)
+        else:
+            action = white_agent.get_action(obs, env)
+
+        # 行動を適用し盤面を更新
+        obs, reward, done, info = env.step(action)
+
+        # 現在の盤面を表示
+        env.render()
+        if pause > 0:
+            time.sleep(pause)
+
+    # --- 勝者を判定し情報を返す -----------------------------------
+    winner = info["winner"]
+    if winner == 1:
+        black_reward = 1.0
+    elif winner == 2:
+        black_reward = -1.0
+    else:
+        black_reward = 0.0
+    turn_count = env.turn_count
+
+    return winner, black_reward, turn_count
+
+
 def play_agents_vs_agents(
     board_size: int = 9,
     num_games: int = 1,
@@ -126,5 +163,5 @@ def play_agents_vs_agents(
     )
 
 
-__all__ = ["play_game", "play_agents_vs_agents"]
+__all__ = ["play_game", "play_game_text", "play_agents_vs_agents"]
 

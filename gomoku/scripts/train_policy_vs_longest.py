@@ -3,6 +3,9 @@
 
 必要に応じて複数プロセスを利用することで、学習を高速化できる。
 学習過程の報酬や勝率を可視化し、学習後はモデル保存と簡易評価を行う。
+
+本スクリプトでは ``plot_results()`` を ``show=False`` で呼び出し、
+GUI の無い環境でも学習グラフを ``figures/`` フォルダへ保存できるようにしている。
 """
 
 from pathlib import Path
@@ -105,8 +108,19 @@ def main():
     save_path = MODEL_DIR / "policy_vs_longest.pth"
     policy_agent.save_model(save_path)
 
+    # ------------------------------------------------------------
     # 学習過程の可視化
-    plot_results(rewards_b, rewards_w, winners, turns, title="Policy vs LongestChain")
+    #   GUI の無い環境でも画像ファイルとして保存できるよう
+    #   show=False を指定して表示を省略する
+    # ------------------------------------------------------------
+    plot_results(
+        rewards_b,
+        rewards_w,
+        winners,
+        turns,
+        title="Policy vs LongestChain",
+        show=False,
+    )
 
     # 簡易評価
     win_rate = evaluate_model(

@@ -3,6 +3,7 @@ import numpy as np
 # 同一パッケージ内のユーティリティを相対インポート
 from .game import Gomoku, count_chains_open_ends
 from .utils import opponent_player
+from .reward_utils import compute_rewards
 
 
 class GomokuEnv:
@@ -105,95 +106,6 @@ class GomokuEnv:
 
         return True
 
-    def _calc_chain_reward(self, before, after, table):
-        """
-        連数 ``before`` -> ``after`` の変化に応じて報酬を計算するヘルパー。
-
-        ``diff`` が正なら連が増えた(もしくは相手の連を減らした)ことを
-        意味するので、その数だけ ``table`` の値を掛けて加算する。
-        """
-
-        reward = 0.0
-        for length in [2, 3, 4]:
-            for open_type in ["open2", "open1"]:
-                diff = after[length][open_type] - before[length][open_type]
-                if diff > 0:
-                    reward += diff * table[length][open_type]
-        return reward
-
-    def _calculate_intermediate_reward(
-        self,
-        current_player: int,
-        opponent: int,
-        before_self: dict,
-        before_opp: dict,
-    ) -> float:
-        """
-        石を置いた後に得られる中間報酬を計算する。
-
-        1. 自分と相手それぞれの連数を着手前後で比較する。
-        2. 自分の連が増えた分だけ ``self.r_chain`` テーブルを用いて加点。
-        3. 相手の連が減った分(=ブロックできた数)だけ ``self.r_block`` テーブルを用いて加点。
-        """
-
-        # --- 1) 着手後の連数を計測 ---------------------------------
-        after_self = count_chains_open_ends(self.game.board, current_player)
-        after_opp = count_chains_open_ends(self.game.board, opponent)
-
-        # --- 2) 自分の連の増加分を評価 --------------------------------
-        reward = self._calc_chain_reward(before_self, after_self, self.r_chain)
-
-        # --- 3) 相手の連の減少(ブロック)を評価 --------------------------
-        reward += self._calc_chain_reward(after_opp, before_opp, self.r_block)
-
-        return reward
-
-    def _final_reward(self, winner: int, current_player: int) -> float:
-        """勝敗に基づく最終報酬を返す"""
-        if winner == 1:
-            return 1.0 if current_player == 1 else -1.0
-        if winner == 2:
-            return 1.0 if current_player == 2 else -1.0
-        return 0.0
-
-    def _compute_rewards(
-        self,
-        current_player: int,
-        opponent: int,
-        before_self: dict,
-        before_opp: dict,
-    ) -> float:
-        """
-        決着判定および中間報酬計算をまとめて行うヘルパー。
-
-        1. ``check_winner()`` による勝敗判定を実施。
-        2. ゲームが継続している場合は ``_calculate_intermediate_reward()`` を用いて
-           連の増減から報酬を算出する。
-        3. 最終報酬と中間報酬を合算して返す。
-        """
-
-        # --- 勝敗判定 --------------------------------------------------
-        winner = self.game.check_winner()
-        reward_final = 0.0
-        if winner != 0:
-            # 勝ち(1 or 2) または引き分け(-1)
-            self.done = True
-            self.winner = winner
-            reward_final = self._final_reward(winner, current_player)
-        else:
-            self.done = False
-
-        # --- 中間報酬の算出 --------------------------------------------
-        reward_intermediate = 0.0
-        if not self.done:
-            reward_intermediate = self._calculate_intermediate_reward(
-                current_player,
-                opponent,
-                before_self,
-                before_opp,
-            )
-
-        return reward_final + reward_intermediate
 
     def step(self, action):
         """
@@ -229,13 +141,15 @@ class GomokuEnv:
         self.game.place_stone(x, y)
         self.turn_count += 1
 
-        # 3. 勝敗判定
-        # 4. 中間報酬の算出
-        total_reward = self._compute_rewards(
-            current_player,
-            opponent,
-            before_self,
-            before_opp,
+        # 3. 勝敗判定と中間報酬の計算
+        total_reward, self.done, self.winner = compute_rewards(
+            game=self.game,
+            current_player=current_player,
+            opponent=opponent,
+            before_self=before_self,
+            before_opp=before_opp,
+            r_chain=self.r_chain,
+            r_block=self.r_block,
         )
 
         return self._get_observation(), total_reward, self.done, {

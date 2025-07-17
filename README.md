@@ -94,6 +94,19 @@ python -m gomoku.scripts.evaluate_models
 `figures/` フォルダへ保存されます。GUI の無い環境では `show=False` を
 指定することで表示を省略し、画像のみ出力することができます。
 
+### 7. 複数の相手に対する学習
+
+`train_policy_mixed.py` を実行すると、
+ヒューリスティックエージェントと既存の `PolicyAgent` を
+ランダムに相手として学習を進められます。
+
+```bash
+python -m gomoku.scripts.train_policy_mixed --episodes 2000
+```
+
+学習後はそれぞれの相手に対する勝率が表示され、
+モデルは `models/policy_mixed.pth` に保存されます。
+
 ## 注意点
 
 - Pygame を使用するスクリプトはディスプレイ出力が必要です。

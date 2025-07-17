@@ -124,6 +124,95 @@ def mask_q_values(q_values: np.ndarray, valid_actions: list[int], invalid_value:
     return masked_q
 
 
+# ------------------------------------------------------------
+# 連を評価する際に利用する方向ベクトル
+# ------------------------------------------------------------
+# (dx, dy) = (1, 0)  : 縦方向
+#            (0, 1)  : 横方向
+#            (1, 1)  : 右下への斜め
+#            (1, -1) : 右上への斜め
+DIRECTIONS = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
+
+def longest_chain_length(
+    obs: np.ndarray,
+    x: int,
+    y: int,
+    player: int,
+    directions: list[tuple[int, int]] = DIRECTIONS,
+) -> int:
+    """指定座標に石を置いたと仮定したときの最長連結長を返すヘルパー"""
+
+    board_size = obs.shape[0]
+    max_len = 1  # 置いた石自身を含むので初期値は1
+
+    # 4 方向それぞれについて連の長さを調べる
+    for dx, dy in directions:
+        count = 1  # 基点の石
+
+        # ---- 正方向への探索 ----
+        cx, cy = x + dx, y + dy
+        while 0 <= cx < board_size and 0 <= cy < board_size and obs[cx, cy] == player:
+            count += 1
+            cx += dx
+            cy += dy
+
+        # ---- 逆方向への探索 ----
+        cx, cy = x - dx, y - dy
+        while 0 <= cx < board_size and 0 <= cy < board_size and obs[cx, cy] == player:
+            count += 1
+            cx -= dx
+            cy -= dy
+
+        # 基点を中心とした1本の連が完成したので最大値を更新
+        if count > max_len:
+            max_len = count
+
+    return max_len
+
+
+def has_n_in_a_row(
+    obs: np.ndarray,
+    x: int,
+    y: int,
+    player: int,
+    n: int,
+    directions: list[tuple[int, int]] = DIRECTIONS,
+) -> bool:
+    """n 連以上が成立するかどうかを判定"""
+
+    return longest_chain_length(obs, x, y, player, directions) >= n
+
+
+def find_chain_move(
+    obs: np.ndarray,
+    valid_actions: list[int],
+    player: int,
+    n: int,
+    directions: list[tuple[int, int]] = DIRECTIONS,
+) -> int | None:
+    """n 連を作れる着手を探して返す。存在しなければ ``None``"""
+
+    board_size = obs.shape[0]
+
+    for a in valid_actions:
+        x = a // board_size
+        y = a % board_size
+
+        # --------------------------------------------
+        # 実際に打つ前に一時的に石を置いてみる
+        # 盤面を壊さず連ができるかどうかを調べるため
+        # --------------------------------------------
+        obs[x, y] = player
+        if has_n_in_a_row(obs, x, y, player, n, directions):
+            obs[x, y] = 0
+            return a
+        # 連ができなければ盤面を元に戻して次の候補へ
+        obs[x, y] = 0
+
+    return None
+
+
 class ReplayBuffer:
     """経験再生用のシンプルなバッファ
 

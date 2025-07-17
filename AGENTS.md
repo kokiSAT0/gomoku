@@ -36,3 +36,4 @@ pip install numpy torch pygame tqdm matplotlib
 - 学習済みモデルの `.pth` ファイルは `models/` フォルダにまとめて配置する
   必要に応じて各エージェントクラスから読み込む
 - 新規機能やルール変更などがあればこの AGENTS.md に追記して履歴を残す
+- README.md も常に最新の実装内容を説明するよう、機能追加のたびに更新する

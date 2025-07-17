@@ -1,9 +1,9 @@
-import numpy as np
-
 # 同一パッケージ内のユーティリティを相対インポート
 from .game import Gomoku, count_chains_open_ends
 from .utils import opponent_player
 from .reward_utils import compute_rewards
+# can_place_stone など細かな判定処理は env_utils へ切り出した
+from .env_utils import can_place_stone
 
 
 class GomokuEnv:
@@ -81,30 +81,8 @@ class GomokuEnv:
         return x * self.board_size + y
 
     def can_place_stone(self, x, y):
-        """
-        自分の環境ルールに照らして(x,y)が有効手かどうかをチェック。
-        - 1) 初手は中央強制の場合、(turn_count == 0) なら (x==center, y==center) か？
-        - 2) adjacency_range 制限に引っかからないか？
-        - 3) 盤外 or 既に石ありでないか？
-
-        全て満たせばTrue, そうでなければFalse。
-        """
-        # 1) 初手は中央のみ
-        if self.turn_count == 0 and self.force_center_first_move:
-            center = self.board_size // 2
-            if not (x == center and y == center):
-                return False
-
-        # 2) adjacency_rangeチェック(コメントアウトで無効化)
-        # if (self.turn_count >= 1) and (self.adjacency_range is not None) and (self.adjacency_range > 0):
-        #     if not self._is_adjacent_to_stone(x, y, self.adjacency_range):
-        #         return False
-
-        # 3) 盤外 or 既に石あり
-        if not self.game.is_valid_move(x, y):
-            return False
-
-        return True
+        """env_utils に定義した判定関数へのラッパー"""
+        return can_place_stone(self, x, y)
 
 
     def step(self, action):
@@ -181,25 +159,3 @@ class GomokuEnv:
     def current_player(self):
         """現在手番のプレイヤーIDを返す(1 or 2)"""
         return self.game.current_player
-
-    def _is_adjacent_to_stone(self, x, y, rng):
-        """
-        盤上の任意の石とのチェビシェフ距離が ``rng`` 以内にあるかを判定する。
-
-        ``rng=1`` の場合は ``(x±1, y±1)`` を含む周囲 1 マスを調べることになる。
-        より効率的にするため、盤面全体を走査するのではなく該当範囲の
-        サブ配列を切り出して確認する。
-        """
-
-        board = self.game.board
-
-        # --- チェビシェフ距離 rng 以内の範囲を計算 ---------------------
-        # 範囲外に出ないよう max/min でクリップする
-        x_min = max(x - rng, 0)
-        x_max = min(x + rng + 1, self.board_size)
-        y_min = max(y - rng, 0)
-        y_max = min(y + rng + 1, self.board_size)
-
-        # --- 部分盤面に石が存在するかを numpy で一気に判定 --------------
-        sub_board = board[x_min:x_max, y_min:y_max]
-        return np.any(sub_board != 0)

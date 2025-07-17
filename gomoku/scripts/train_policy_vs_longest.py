@@ -128,7 +128,10 @@ def main():
         # 単純な1プロセス学習
         print("学習を開始します...")
         rewards_b, rewards_w, winners, turns = train_agents(
-            env, black_agent, white_agent, args.episodes
+            env,
+            black_agent,
+            white_agent,
+            episodes=args.episodes,
         )
 
     # モデルを保存 (学習対象エージェント)

@@ -28,7 +28,10 @@ def train_q_vs_q(config: dict, show_plot: bool = False) -> tuple[QAgent, QAgent]
 
     # 実際の学習ループは ``train_agents`` に任せる
     rew_b, rew_w, winners, turns = train_agents(
-        env, black_q, white_q, config["episodes"]
+        env,
+        black_q,
+        white_q,
+        episodes=config["episodes"],
     )
 
     # 成果をグラフ化し必要なら表示

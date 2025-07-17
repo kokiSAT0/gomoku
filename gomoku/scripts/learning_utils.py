@@ -10,17 +10,40 @@ from ..core.gomoku_env import GomokuEnv
 from ..core.utils import moving_average, FIGURE_DIR
 # play_with_pygame.py にはサンプル用の実行コードのみ存在するため
 # 実際のゲームロジックを提供する play_utils.py から ``play_game`` を読み込む
-from .play_utils import play_game
+from .play_utils import play_game, play_game_text
 
 
-def train_agents(env, black_agent, white_agent, episodes=1000):
-    """自己対戦によりエージェントを学習させる汎用ループ"""
+def train_agents(
+    env,
+    black_agent,
+    white_agent,
+    episodes: int = 1000,
+    eval_interval: int = 0,
+    eval_pause: float = 0.0,
+):
+    """自己対戦によりエージェントを学習させる汎用ループ
+
+    Parameters
+    ----------
+    env : GomokuEnv
+        学習に使用する環境インスタンス
+    black_agent : Any
+        黒番のエージェント
+    white_agent : Any
+        白番のエージェント
+    episodes : int, optional
+        学習エピソード数
+    eval_interval : int, optional
+        ``eval_interval`` > 0 のとき、この間隔でテキスト対戦を表示する
+    eval_pause : float, optional
+        テキスト対戦表示時の待ち時間 (秒)
+    """
     all_rewards_black = []
     all_rewards_white = []
     winners = []
     turns_list = []
 
-    for _ in tqdm(range(episodes), desc="train_agents"):
+    for ep in tqdm(range(episodes), desc="train_agents"):
         obs = env.reset()
         done = False
         black_episode_reward = 0.0
@@ -64,6 +87,11 @@ def train_agents(env, black_agent, white_agent, episodes=1000):
         turns_list.append(env.turn_count)
         all_rewards_black.append(black_episode_reward)
         all_rewards_white.append(white_episode_reward)
+
+        # --- 指定エピソード毎にテキスト対戦を実行 ------------------
+        if eval_interval > 0 and (ep + 1) % eval_interval == 0:
+            print(f"\n[評価] エピソード {ep + 1} 時点での対戦例")
+            play_game_text(env, black_agent, white_agent, pause=eval_pause)
 
     return all_rewards_black, all_rewards_white, winners, turns_list
 

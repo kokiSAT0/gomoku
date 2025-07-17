@@ -21,11 +21,11 @@ pip install numpy torch pygame tqdm matplotlib
 ```
 
 ## 主要スクリプト
-- `play_with_pygame.py`: Pygame を用いた GUI 対戦プログラム
-- `play_vs_model.py`: 端末上でモデルと対戦するための簡易インタフェース
-- `learn_model.py` / `learning_all_in_one.py`: 強化学習によるモデル学習
-- `evaluate_models.py`: 学習済みモデルの評価
-- `parallel_train.py`: 並列での学習実験用
+- `gomoku/scripts/play_with_pygame.py`: Pygame を用いた GUI 対戦プログラム
+- `gomoku/scripts/play_vs_model.py`: 端末上でモデルと対戦するための簡易インタフェース
+- `gomoku/scripts/learn_model.py` / `gomoku/scripts/learning_all_in_one.py`: 強化学習によるモデル学習
+- `gomoku/scripts/evaluate_models.py`: 学習済みモデルの評価
+- `gomoku/scripts/parallel_train.py`: 並列での学習実験用
 
 ## コーディング方針
 - コメントや docstring は必ず日本語で記述すること

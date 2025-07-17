@@ -1,6 +1,7 @@
 import numpy as np
 
-from utils import opponent_player
+# 同一パッケージ内のユーティリティを相対インポート
+from .utils import opponent_player
 
 
 def _scan_chain_open_end(

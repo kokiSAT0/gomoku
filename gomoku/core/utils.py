@@ -12,7 +12,8 @@ import numpy as np
 #   - GUI の無い環境でも学習過程を確認できるよう、
 #     グラフ画像をここへまとめて保存する
 # ------------------------------------------------------------
-FIGURE_DIR = Path(__file__).resolve().parent / "figures"
+# サブディレクトリに配置されたため二階層上を基準にする
+FIGURE_DIR = Path(__file__).resolve().parents[2] / "figures"
 FIGURE_DIR.mkdir(exist_ok=True)
 
 

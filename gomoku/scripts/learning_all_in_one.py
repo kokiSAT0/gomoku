@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
-from utils import (
+from ..core.utils import (
     moving_average,
     opponent_player,
     get_valid_actions,
@@ -25,10 +25,10 @@ from utils import (
 )
 
 # play_with_pygame の描画機能を利用するためのインポート
-from play_with_pygame import play_game
+from .play_with_pygame import play_game
 
 # 学習済みモデルを保存するディレクトリ
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 # ------------------------------------------------------------
 # グラフ画像を保存するディレクトリ

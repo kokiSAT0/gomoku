@@ -10,14 +10,14 @@ import argparse
 import torch
 import multiprocessing
 
-from gomoku_env import GomokuEnv
-from agents import PolicyAgent, LongestChainAgent
-from learning_all_in_one import train_agents, plot_results
-from evaluate_models import evaluate_model
-from parallel_train import train_master
+from ..core.gomoku_env import GomokuEnv
+from ..ai.agents import PolicyAgent, LongestChainAgent
+from .learning_all_in_one import train_agents, plot_results
+from .evaluate_models import evaluate_model
+from .parallel_train import train_master
 
 # モデル保存用ディレクトリ
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 # -----------------------------------------------
 # 3連や4連をブロックした時に高めの報酬を与える

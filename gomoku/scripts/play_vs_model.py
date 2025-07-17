@@ -8,11 +8,13 @@
 """
 from pathlib import Path
 
-from gomoku_env import GomokuEnv
-from agents import PolicyAgent, RandomAgent
+# パッケージ構成変更に伴いインポートパスを修正
+from ..core.gomoku_env import GomokuEnv
+from ..ai.agents import PolicyAgent, RandomAgent
 
 # 学習済みモデルを保存したフォルダ
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+# スクリプトディレクトリから二階層上の ``models`` フォルダを参照
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.pth"):
     """

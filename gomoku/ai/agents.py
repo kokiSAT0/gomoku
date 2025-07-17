@@ -16,12 +16,20 @@ import torch.nn.functional as F
 from dataclasses import dataclass
 from pathlib import Path
 
-from utils import opponent_player, get_valid_actions, mask_probabilities, mask_q_values, ReplayBuffer
+# 共通ユーティリティは core サブパッケージからインポート
+from ..core.utils import (
+    opponent_player,
+    get_valid_actions,
+    mask_probabilities,
+    mask_q_values,
+    ReplayBuffer,
+)
 
 # ----------------------------------------------------
 # 学習済みモデルを保存するディレクトリ
 # ----------------------------------------------------
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+# パッケージ階層が深くなったため二階層上から ``models`` を参照
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 # フォルダが存在しない場合は作成しておく
 MODEL_DIR.mkdir(exist_ok=True)
 

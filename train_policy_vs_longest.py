@@ -8,6 +8,7 @@
 from pathlib import Path
 import argparse
 import torch
+import multiprocessing
 
 from gomoku_env import GomokuEnv
 from agents import PolicyAgent, LongestChainAgent
@@ -55,6 +56,11 @@ def main():
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     board_size = args.board_size
     policy_color = args.policy_color
+
+    # CUDA 使用時に fork 方式で子プロセスを起動するとエラーになるため
+    # 並列実行を行う場合は start_method を 'spawn' に設定する
+    if args.num_workers > 1:
+        multiprocessing.set_start_method("spawn", force=True)
 
     if args.num_workers > 1:
         # 並列学習モード

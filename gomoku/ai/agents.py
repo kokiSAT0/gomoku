@@ -9,10 +9,15 @@ from .heuristic_agents import (
 )
 
 # 強化学習系エージェント
-from .rl_agents import (
+# 方策勾配エージェント関連
+from .policy_agent import (
     EpisodeStep,
     PolicyNet,
     PolicyAgent,
+)
+
+# DQN エージェント関連
+from .q_agent import (
     QNet,
     QAgent,
 )

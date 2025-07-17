@@ -12,6 +12,17 @@ from pathlib import Path
 import argparse
 import torch
 import multiprocessing
+import sys
+
+# ------------------------------------------------------------
+# スクリプトが ``python train_policy_vs_longest.py`` のように
+# パッケージ外から直接実行された場合、相対インポートが失敗する。
+# そのため ``sys.path`` にプロジェクトルートを追加し、
+# ``__package__`` を設定することで相対インポートを可能にする。
+# ------------------------------------------------------------
+if __package__ is None or __package__ == "":
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+    __package__ = "gomoku.scripts"
 
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import PolicyAgent, LongestChainAgent

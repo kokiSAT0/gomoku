@@ -113,6 +113,18 @@ python -m gomoku.scripts.train_policy_mixed --episodes 2000
 学習後はそれぞれの相手に対する勝率が表示され、
 モデルは `models/policy_mixed.pth` に保存されます。
 
+### 8. QAgent とヒューリスティックの段階的学習
+
+`train_q_vs_heuristics.py` を使うと、複数のヒューリスティックエージェントを
+相手にフェーズを区切って `QAgent` を訓練できます。
+
+```bash
+python -m gomoku.scripts.train_q_vs_heuristics --episodes 500
+```
+
+勝率の伸びが小さくなった時点で学習を停止し、最後に 1 戦だけテキスト表示で
+対局結果を確認できます。
+
 ## 注意点
 
 - Pygame を使用するスクリプトはディスプレイ出力が必要です。

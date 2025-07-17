@@ -48,6 +48,8 @@ python -m gomoku.scripts.play_with_pygame
 
 初期設定では学習済み `PolicyAgent` とヒューリスティックエージェントの対戦を
 1 ゲームだけ可視化します。盤面ウィンドウが表示され、対局の様子を見ることができます。
+CPU の反応速度が速すぎる場合は `--fps` オプションで描画速度を調整してください。
+例: `python -m gomoku.scripts.play_with_pygame --fps 1`
 
 ### 2. 端末上で学習済みモデルと対戦する
 

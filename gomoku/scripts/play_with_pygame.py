@@ -11,6 +11,7 @@ import sys
 import time
 import numpy as np
 from pathlib import Path
+import argparse  # コマンドライン引数処理用
 
 # 新しいパッケージ構成に合わせてインポート
 from ..core.gomoku_env import GomokuEnv
@@ -32,6 +33,23 @@ LINE_COLOR = (0, 0, 0)        # グリッド線(黒)
 BG_COLOR = (222, 184, 135)    # 碁盤っぽい背景色 (ベージュ)
 BLACK_STONE_COLOR = (0, 0, 0) # 黒石
 WHITE_STONE_COLOR = (255, 255, 255) # 白石
+
+
+def parse_args():
+    """コマンドライン引数を解析して返すヘルパー"""
+    parser = argparse.ArgumentParser(
+        description="PyGame でエージェント同士を対戦させる簡易ツール"
+    )
+    parser.add_argument(
+        "--fps",
+        type=float,
+        default=2.0,
+        help=(
+            "1 秒間のフレーム数を指定します。"
+            "小さい値にすると CPU の思考間隔が長くなります。"
+        ),
+    )
+    return parser.parse_args()
 
 
 def draw_grid(screen, board_size):
@@ -314,12 +332,10 @@ def show_results(
 # 実行例
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
-    """
-    サンプル1:
-      - 黒番: 学習済みPolicyAgent (policy_agent_black.pthをロード)
-      - 白番: ヒューリスティックImmediateWinBlockAgent
-      - 1ゲームだけ可視化
-    """
+    """サンプル設定で1ゲームだけ実行する"""
+    # 引数を解析して fps を取得
+    args = parse_args()
+
     play_agents_vs_agents(
         board_size=9,
         num_games=1,
@@ -334,7 +350,7 @@ if __name__ == "__main__":
         white_agent_params={},
 
         visualize=True,
-        fps=2
+        fps=args.fps,  # コマンドライン指定の速度で実行
     )
 
     """

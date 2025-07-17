@@ -25,13 +25,20 @@ def train_worker(
     env_params=None,
     policy_color="black",
     initial_state_dict=None,
+    initial_temp=None,
 ):
     """ワーカー側でエピソードを実行しデータを返す関数"""
+    # ``initial_temp`` には前回までの温度を受け取り、ワーカーでも継続して
+    # 同じ温度から探索を開始できるようにする
     if env_params is None:
         env_params = {}
 
     # 学習対象エージェントを生成
     policy_agent = PolicyAgent(board_size=board_size, **agent_params)
+
+    # 温度パラメータをメイン側から引き継ぐ
+    if initial_temp is not None:
+        policy_agent.temp = initial_temp  # 継続学習のため温度を上書き
 
     # メインプロセスから渡された重みがあれば読み込む
     if initial_state_dict is not None:
@@ -114,6 +121,7 @@ def train_master(
                         env_params,
                         policy_color,
                         {k: v.cpu() for k, v in policy_agent.model.state_dict().items()},
+                        policy_agent.temp,  # 現在の温度をワーカーへ伝える
                     )
                 )
 
@@ -147,6 +155,10 @@ def train_master(
 
             # バッチ分のログで学習
             loss = update_with_trajectories(policy_agent, all_episodes)
+
+            # Issue 1: エピソードごとの温度減衰を反映
+            # 学習が進むにつれて探索度を下げるため温度を更新
+            policy_agent.update_temperature()
 
     return policy_agent, all_rewards, all_winners, all_turn_counts
 

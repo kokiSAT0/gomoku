@@ -26,7 +26,7 @@ if __package__ is None or __package__ == "":
 
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import PolicyAgent, LongestChainAgent
-from .learning_all_in_one import train_agents, plot_results
+from .learning_utils import train_agents, plot_results
 from .evaluate_models import evaluate_model
 from .parallel_train import train_master
 

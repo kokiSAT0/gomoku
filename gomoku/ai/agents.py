@@ -14,6 +14,7 @@ from .heuristic import (
 from .policy_agent import (
     EpisodeStep,
     PolicyNet,
+    ConvPolicyNet,
     PolicyAgent,
 )
 
@@ -30,6 +31,7 @@ __all__ = [
     "LongestChainAgent",
     "EpisodeStep",
     "PolicyNet",
+    "ConvPolicyNet",
     "PolicyAgent",
     "QNet",
     "QAgent",

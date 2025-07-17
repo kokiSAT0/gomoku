@@ -28,7 +28,7 @@ if __name__ == "__main__":
     agentC = FourThreePriorityAgent()
     agentD = LongestChainAgent()
 
-    agentP = PolicyAgent(board_size=9)
+    agentP = PolicyAgent(board_size=9, network_type="dense")
     agentP.load_model(MODEL_DIR / "policy_agent_black.pth")
 
     agentQ = QAgent(board_size=9)

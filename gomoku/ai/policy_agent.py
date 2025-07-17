@@ -29,7 +29,7 @@ class EpisodeStep:
 
 
 class PolicyNet(nn.Module):
-    """盤面を入力として各マスの確率を出力する簡易ネットワーク"""
+    """盤面を一次元ベクトルとして処理する全結合ネットワーク"""
 
     def __init__(self, board_size: int = 9, hidden_size: int = 128) -> None:
         super().__init__()
@@ -39,8 +39,37 @@ class PolicyNet(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """入力 ``x`` は (batch, board_size*board_size) 形式を想定"""
         h = F.relu(self.fc1(x))
         logits = self.fc2(h)
+        return logits
+
+
+class ConvPolicyNet(nn.Module):
+    """畳み込み層を用いたポリシーネットワーク"""
+
+    def __init__(self, board_size: int = 9, hidden_size: int = 64) -> None:
+        super().__init__()
+        self.board_size = board_size
+        out_dim = board_size * board_size
+
+        # 3x3 の畳み込みを複数重ねて局所特徴を抽出
+        self.conv1 = nn.Conv2d(1, hidden_size, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, padding=1)
+
+        # 最終的に全結合層で出力を 81 (=9x9) 次元へ変換
+        self.fc = nn.Linear(hidden_size * board_size * board_size, out_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """入力 ``x`` を (batch, 1, board_size, board_size) へ整形して畳み込み処理"""
+        b = x.size(0)
+        h = x.view(b, 1, self.board_size, self.board_size)
+        h = F.relu(self.conv1(h))
+        h = F.relu(self.conv2(h))
+        h = F.relu(self.conv3(h))
+        h = h.view(b, -1)
+        logits = self.fc(h)
         return logits
 
 
@@ -55,6 +84,7 @@ class PolicyAgent:
         gamma: float = 0.99,
         temp: float = 2.0,
         device: str | None = None,
+        network_type: str = "conv",
     ) -> None:
         self.board_size = board_size
         self.gamma = gamma
@@ -63,7 +93,15 @@ class PolicyAgent:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
 
-        self.model = PolicyNet(board_size, hidden_size).to(self.device)
+        # ネットワークの種類を選択
+        if network_type.lower() == "conv":
+            self.model = ConvPolicyNet(board_size, hidden_size).to(self.device)
+        elif network_type.lower() in ("fc", "dense"):
+            self.model = PolicyNet(board_size, hidden_size).to(self.device)
+        else:
+            raise ValueError(f"未知の network_type: {network_type}")
+
+        self.network_type = network_type
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.episode_log: list[EpisodeStep] = []
 

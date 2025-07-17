@@ -16,7 +16,9 @@ from ..ai.agents import PolicyAgent, RandomAgent
 # スクリプトディレクトリから二階層上の ``models`` フォルダを参照
 MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
-def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.pth"):
+def play_game_with_trained_model(
+    policy_path=MODEL_DIR / "policy_agent_trained.pth", network_type="dense"
+):
     """
     学習済みモデルを用いて1ゲームだけ対戦を行う関数。
 
@@ -37,7 +39,7 @@ def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.p
     # 学習済みモデルを読み込んだPolicyAgent(黒番)とRandomAgent(白番)で対戦
     env = GomokuEnv(board_size=9)
     # 黒番となる学習済みエージェントを初期化
-    black_agent = PolicyAgent(board_size=9)
+    black_agent = PolicyAgent(board_size=9, network_type=network_type)
     black_agent.load_model(policy_path)
 
     # 白番は単純なランダムエージェント
@@ -68,4 +70,6 @@ def play_game_with_trained_model(policy_path=MODEL_DIR / "policy_agent_trained.p
         print("引き分け")
 
 if __name__ == "__main__":
-    play_game_with_trained_model(MODEL_DIR / "policy_agent_trained.pth")
+    play_game_with_trained_model(
+        MODEL_DIR / "policy_agent_trained.pth", network_type="dense"
+    )

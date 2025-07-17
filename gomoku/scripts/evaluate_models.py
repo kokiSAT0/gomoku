@@ -1,7 +1,7 @@
 """学習済みモデルの性能を評価するスクリプト。
 
-指定した ``PolicyAgent`` を他のエージェントと複数回対戦させ、
-黒番の勝率を計算する。
+指定したエージェント(PolicyAgent または QAgent)をヒューリスティック
+エージェントと複数回対戦させ、黒番の勝率を計算する。
 例:
     $ python evaluate_models.py
 """
@@ -11,6 +11,7 @@ import argparse
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import (
     PolicyAgent,
+    QAgent,
     RandomAgent,
     ImmediateWinBlockAgent,
     FourThreePriorityAgent,
@@ -22,6 +23,7 @@ MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 def evaluate_model(
     policy_path=MODEL_DIR / "policy_agent_trained.pth",
+    q_path=MODEL_DIR / "q_agent.pth",
     opponent_agent=None,
     num_episodes=1000,
     board_size=9,
@@ -29,31 +31,52 @@ def evaluate_model(
     policy_color="black",
     network_type="dense",
     eval_temp=0.5,
+    agent_type="policy",
 ):
     """
-    保存済みモデル(PolicyAgent)を読み込み、指定した相手と複数回対戦させて
-    PolicyAgent の勝率を返す。``policy_color`` で先手/後手を指定できる。
+    保存済みモデルを読み込み、指定した相手と複数回対戦させて
+    勝率を返す。``agent_type`` で ``PolicyAgent`` か ``QAgent`` を選択できる。
 
     引数:
-      policy_path: 保存済みモデルのパス
-      opponent_agent: 対戦相手(Agentのインスタンス)
+      policy_path: PolicyAgent 用モデルのパス
+      q_path: QAgent 用モデルのパス
+      opponent_agent: 対戦相手(Agent のインスタンス)
       num_episodes: 対戦回数
       board_size: 盤面サイズ
       device: 使用デバイス ("cuda" / "cpu" など)
       policy_color: "black" なら先手、"white" なら後手として評価
       eval_temp: 評価時に用いる temperature 値
+      agent_type: 評価するエージェントの種類 ("policy" or "q")
 
     戻り値:
-      win_rate: PolicyAgent の勝率 (0.0 ~ 1.0)
+      win_rate: 指定エージェントの勝率 (0.0 ~ 1.0)
     """
-    # 1) 評価対象のPolicyAgentを読み込み
-    policy_agent = PolicyAgent(
-        board_size=board_size, device=device, network_type=network_type
-    )
-    policy_agent.load_model(policy_path)  # 事前に学習済みモデルを読み込む
-    policy_agent.model.eval()  # 評価モード
-    # 評価時の探索ノイズの大きさを指定
-    policy_agent.temp = eval_temp
+    # 1) 評価対象のエージェントを読み込み
+    if agent_type == "policy":
+        eval_agent = PolicyAgent(
+            board_size=board_size, device=device, network_type=network_type
+        )
+        eval_agent.load_model(policy_path)
+        eval_agent.model.eval()
+        eval_agent.temp = eval_temp
+    else:
+        eval_agent = QAgent(board_size=board_size)
+        eval_agent.load_model(q_path)
+
+    def play_single_game(black, white) -> int:
+        """1 試合だけ実行し勝者を返す"""
+        env = GomokuEnv(board_size=board_size)
+        obs = env.reset()
+        done = False
+
+        while not done:
+            if env.current_player == 1:
+                action = black.get_action(obs, env)
+            else:
+                action = white.get_action(obs, env)
+            obs, _, done, info = env.step(action)
+
+        return info["winner"]
 
     # 2) 対戦相手を用意 (引数で与えられなければ RandomAgent とする)
     if opponent_agent is None:
@@ -65,28 +88,12 @@ def evaluate_model(
     losses = 0
 
     for _ in range(num_episodes):
-        env = GomokuEnv(board_size=board_size)
-        obs = env.reset()
-        done = False
+        if policy_color == "black":
+            winner = play_single_game(eval_agent, opponent_agent)
+        else:
+            winner = play_single_game(opponent_agent, eval_agent)
 
-        while not done:
-            if env.current_player == 1:
-                # 先手の手番
-                if policy_color == "black":
-                    action = policy_agent.get_action(obs, env)
-                else:
-                    action = opponent_agent.get_action(obs, env)
-            else:
-                # 後手の手番
-                if policy_color == "white":
-                    action = policy_agent.get_action(obs, env)
-                else:
-                    action = opponent_agent.get_action(obs, env)
-
-            obs, reward, done, info = env.step(action)
-
-        # 対局終了後に勝敗を確認 (policy_agent 視点)
-        winner = info["winner"]
+        # 対局終了後に勝敗を確認 (eval_agent 視点)
         if policy_color == "black":
             if winner == 1:
                 wins += 1
@@ -106,7 +113,8 @@ def evaluate_model(
     win_rate = wins / num_episodes
     print(f"対戦回数: {num_episodes}")
     color_label = "先手" if policy_color == "black" else "後手"
-    print(f"{color_label}(PolicyAgent) 勝ち: {wins}, 負け: {losses}, 引き分け: {draws}")
+    label = "PolicyAgent" if agent_type == "policy" else "QAgent"
+    print(f"{color_label}({label}) 勝ち: {wins}, 負け: {losses}, 引き分け: {draws}")
     print(f"勝率: {win_rate:.2f}")
 
     return win_rate
@@ -114,13 +122,25 @@ def evaluate_model(
 if __name__ == "__main__":
     # コマンドライン引数を利用して設定を受け取る
     parser = argparse.ArgumentParser(
-        description="学習済み PolicyAgent の評価を行うユーティリティ"
+        description="学習済みモデルの評価を行うユーティリティ"
     )
     parser.add_argument(
         "--policy_path",
         type=Path,
         default=MODEL_DIR / "policy_agent_trained.pth",
-        help="評価に用いる PolicyAgent のモデルファイルパス",
+        help="PolicyAgent 用モデルファイルのパス",
+    )
+    parser.add_argument(
+        "--q_path",
+        type=Path,
+        default=MODEL_DIR / "q_agent.pth",
+        help="QAgent 用モデルファイルのパス",
+    )
+    parser.add_argument(
+        "--agent_type",
+        choices=["policy", "q"],
+        default="policy",
+        help="評価対象エージェントの種類",
     )
     parser.add_argument(
         "--opponent",
@@ -141,10 +161,16 @@ if __name__ == "__main__":
         "--policy_color",
         choices=["black", "white"],
         default="black",
-        help="PolicyAgent を先手または後手で評価するかを指定",
+        help="評価対象エージェントを先手または後手どちらで用いるか",
     )
     parser.add_argument(
         "--eval_temp", type=float, default=0.5, help="評価時の temperature"
+    )
+    parser.add_argument(
+        "--network_type",
+        choices=["dense", "conv"],
+        default="dense",
+        help="PolicyAgent のネットワーク形式",
     )
 
     args = parser.parse_args()
@@ -160,11 +186,14 @@ if __name__ == "__main__":
         opp = LongestChainAgent()
 
     evaluate_model(
-
-        policy_path=MODEL_DIR / "policy_agent_trained.pth",
-        opponent_agent=FourThreePriorityAgent(),
-        num_episodes=100,
-        board_size=9,
-        network_type="dense",
-
+        policy_path=args.policy_path,
+        q_path=args.q_path,
+        opponent_agent=opp,
+        num_episodes=args.num_episodes,
+        board_size=args.board_size,
+        device=args.device,
+        policy_color=args.policy_color,
+        network_type=args.network_type,
+        eval_temp=args.eval_temp,
+        agent_type=args.agent_type,
     )

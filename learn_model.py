@@ -9,10 +9,11 @@ PolicyAgent や QAgent の学習例が含まれており、
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from datetime import datetime
 from tqdm import tqdm
 
 from gomoku_env import GomokuEnv
-from utils import moving_average
+from utils import moving_average, FIGURE_DIR
 from agents import (
     PolicyAgent,
     QAgent,
@@ -265,7 +266,15 @@ def main():
         black_params={"hidden_size":128, "lr":1e-3, "gamma":0.95},
         white_params={"hidden_size":128, "lr":1e-3, "gamma":0.95}
     )
-    plot_results(rew_b, rew_w, winners, turns, title="Policy vs Policy (9x9)")
+    # GUI のない環境でも確認できるよう show=False
+    plot_results(
+        rew_b,
+        rew_w,
+        winners,
+        turns,
+        title="Policy vs Policy (9x9)",
+        show=False,
+    )
     black_agent.save_model(MODEL_DIR / "policy_agent_black.pth")
     white_agent.save_model(MODEL_DIR / "policy_agent_white.pth")
 
@@ -308,7 +317,8 @@ def main():
     # white_agent.save_model(MODEL_DIR / "policy_white.pth")
 
 
-def plot_results(rew_b, rew_w, winners, turns, title="SelfPlay"):
+def plot_results(rew_b, rew_w, winners, turns, title="SelfPlay", show=True):
+    """学習状況をグラフ化して保存する関数"""
     import matplotlib.pyplot as plt
 
     n = len(rew_b)
@@ -341,7 +351,22 @@ def plot_results(rew_b, rew_w, winners, turns, title="SelfPlay"):
     plt.ylabel("Turns")
 
     plt.tight_layout()
-    plt.show()
+
+    # ------------------------------------------------------------
+    # 描画結果を保存
+    #   ファイル名にタイトルとタイムスタンプを付与する
+    # ------------------------------------------------------------
+    FIGURE_DIR.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{title.replace(' ', '_')}_{timestamp}.png"
+    save_path = FIGURE_DIR / filename
+    plt.savefig(save_path)
+
+    # GUI が無い環境では show=False として使用する
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 if __name__ == "__main__":

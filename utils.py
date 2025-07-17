@@ -4,7 +4,16 @@
 from typing import Sequence, List
 import random
 import collections
+from pathlib import Path
 import numpy as np
+
+# ------------------------------------------------------------
+# 描画結果を保存するフォルダ
+#   - GUI の無い環境でも学習過程を確認できるよう、
+#     グラフ画像をここへまとめて保存する
+# ------------------------------------------------------------
+FIGURE_DIR = Path(__file__).resolve().parent / "figures"
+FIGURE_DIR.mkdir(exist_ok=True)
 
 
 def moving_average(data: Sequence[float], window: int) -> List[float]:

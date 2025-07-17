@@ -10,7 +10,9 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pathlib import Path
+from datetime import datetime
 from gomoku_env import GomokuEnv
+from utils import FIGURE_DIR
 
 # 学習済みモデルの保存先ディレクトリ
 MODEL_DIR = Path(__file__).resolve().parent / "models"
@@ -183,7 +185,7 @@ def print_tournament_results(
     #     print(f"{agent_names[i]}(Black) vs {agent_names[j]}(White): {info}")
 
 
-def plot_winrate_heatmap(result_matrix, agent_names):
+def plot_winrate_heatmap(result_matrix, agent_names, show=True):
     """
     黒番勝率のヒートマップを matplotlib で可視化。
     行(黒番), 列(白番)
@@ -212,10 +214,21 @@ def plot_winrate_heatmap(result_matrix, agent_names):
     ax.set_ylabel("Black")
     ax.set_title("Black Win Rate Matrix")
     plt.tight_layout()
-    plt.show()
+
+    # ------------------------------------------------------------
+    # 描画結果を保存
+    # ------------------------------------------------------------
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"winrate_heatmap_{timestamp}.png"
+    plt.savefig(FIGURE_DIR / filename)
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
-def plot_ranking_bar(ranking_info, agent_names):
+def plot_ranking_bar(ranking_info, agent_names, show=True):
     """
     ランキング(黒番勝率の平均)を棒グラフで可視化。
     """
@@ -233,7 +246,18 @@ def plot_ranking_bar(ranking_info, agent_names):
     plt.title("Ranking by Black Perspective")
     plt.xlim(0, 1)
     plt.tight_layout()
-    plt.show()
+
+    # ------------------------------------------------------------
+    # 棒グラフを保存
+    # ------------------------------------------------------------
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"ranking_bar_{timestamp}.png"
+    plt.savefig(FIGURE_DIR / filename)
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 # ------------------------------------------------------------------
@@ -279,7 +303,7 @@ if __name__ == "__main__":
     print_tournament_results(result_mat, stats, ranking_info, agent_names)
 
     # ヒートマップ表示
-    plot_winrate_heatmap(result_mat, agent_names)
+    plot_winrate_heatmap(result_mat, agent_names, show=False)
 
     # バーグラフ(ランキング)表示
-    plot_ranking_bar(ranking_info, agent_names)
+    plot_ranking_bar(ranking_info, agent_names, show=False)

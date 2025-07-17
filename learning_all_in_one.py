@@ -13,13 +13,29 @@ import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from pathlib import Path
-from utils import moving_average, opponent_player, get_valid_actions, mask_probabilities, mask_q_values, ReplayBuffer
+from datetime import datetime
+from utils import (
+    moving_average,
+    opponent_player,
+    get_valid_actions,
+    mask_probabilities,
+    mask_q_values,
+    ReplayBuffer,
+    FIGURE_DIR,
+)
 
 # play_with_pygame の描画機能を利用するためのインポート
 from play_with_pygame import play_game
 
 # 学習済みモデルを保存するディレクトリ
 MODEL_DIR = Path(__file__).resolve().parent / "models"
+
+# ------------------------------------------------------------
+# グラフ画像を保存するディレクトリ
+#   実験結果の可視化を GUI 無し環境でも確認できるよう、
+#   ここにまとめて保存する
+# ------------------------------------------------------------
+FIGURE_DIR.mkdir(exist_ok=True)
 
 ########################################################
 # 1) GomokuEnv (五目並べ環境)
@@ -1068,7 +1084,7 @@ def train_agents(
     return all_rewards_black, all_rewards_white, winners, turns_list
 
 
-def plot_results(rew_b, rew_w, winners, turns, title="Training Results"):
+def plot_results(rew_b, rew_w, winners, turns, title="Training Results", show=True):
     n = len(rew_b)
     window = max(1, n // 50)
 
@@ -1101,7 +1117,20 @@ def plot_results(rew_b, rew_w, winners, turns, title="Training Results"):
     plt.legend()
 
     plt.tight_layout()
-    plt.show()
+
+    # ------------------------------------------------------------
+    # グラフ画像を保存
+    #   タイトルと日時を組み合わせたファイル名で保存する
+    # ------------------------------------------------------------
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{title.replace(' ', '_')}_{timestamp}.png"
+    save_path = FIGURE_DIR / filename
+    plt.savefig(save_path)
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 ########################################################
@@ -1179,7 +1208,15 @@ def main():
     white_q = QAgent(**config["q_params"])
 
     rew_b, rew_w, winners, turns = train_agents(env, black_q, white_q, config["episodes"])
-    plot_results(rew_b, rew_w, winners, turns, title="Q vs Q")
+    # GUI が無い場合を考慮して show=False
+    plot_results(
+        rew_b,
+        rew_w,
+        winners,
+        turns,
+        title="Q vs Q",
+        show=False,
+    )
 
     black_q.save_model(MODEL_DIR / "q_black.pth")
     white_q.save_model(MODEL_DIR / "q_white.pth")

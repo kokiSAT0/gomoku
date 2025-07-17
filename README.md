@@ -60,7 +60,8 @@ python -m gomoku.scripts.play_vs_model
 
 ### 3. モデルを学習する
 
-`gomoku/scripts/learn_model.py` にはいくつかの自己対戦パターンが用意されています。
+`gomoku/scripts/learn_model.py` では自己対戦ループを `selfplay_utils.py` に分割し、
+複数の組み合わせを手軽に試せるようにしています。
 `PolicyAgent` 同士で学習する場合は以下のように実行します。
 
 ```bash

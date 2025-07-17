@@ -7,6 +7,7 @@
 """
 
 from pathlib import Path
+import argparse
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import (
     PolicyAgent,
@@ -26,6 +27,7 @@ def evaluate_model(
     board_size=9,
     device=None,
     policy_color="black",
+    eval_temp=0.5,
 ):
     """
     保存済みモデル(PolicyAgent)を読み込み、指定した相手と複数回対戦させて
@@ -38,6 +40,7 @@ def evaluate_model(
       board_size: 盤面サイズ
       device: 使用デバイス ("cuda" / "cpu" など)
       policy_color: "black" なら先手、"white" なら後手として評価
+      eval_temp: 評価時に用いる temperature 値
 
     戻り値:
       win_rate: PolicyAgent の勝率 (0.0 ~ 1.0)
@@ -46,6 +49,8 @@ def evaluate_model(
     policy_agent = PolicyAgent(board_size=board_size, device=device)
     policy_agent.load_model(policy_path)  # 事前に学習済みモデルを読み込む
     policy_agent.model.eval()  # 評価モード
+    # 評価時の探索ノイズの大きさを指定
+    policy_agent.temp = eval_temp
 
     # 2) 対戦相手を用意 (引数で与えられなければ RandomAgent とする)
     if opponent_agent is None:
@@ -104,10 +109,59 @@ def evaluate_model(
     return win_rate
 
 if __name__ == "__main__":
-    # 例: ランダムエージェントと100回対戦
+    # コマンドライン引数を利用して設定を受け取る
+    parser = argparse.ArgumentParser(
+        description="学習済み PolicyAgent の評価を行うユーティリティ"
+    )
+    parser.add_argument(
+        "--policy_path",
+        type=Path,
+        default=MODEL_DIR / "policy_agent_trained.pth",
+        help="評価に用いる PolicyAgent のモデルファイルパス",
+    )
+    parser.add_argument(
+        "--opponent",
+        choices=["random", "immediate", "fourthree", "longest"],
+        default="random",
+        help="対戦相手となるエージェントの種類",
+    )
+    parser.add_argument(
+        "--num_episodes", type=int, default=1000, help="対戦回数"
+    )
+    parser.add_argument(
+        "--board_size", type=int, default=9, help="盤面のサイズ"
+    )
+    parser.add_argument(
+        "--device", type=str, default=None, help="使用するデバイス名"
+    )
+    parser.add_argument(
+        "--policy_color",
+        choices=["black", "white"],
+        default="black",
+        help="PolicyAgent を先手または後手で評価するかを指定",
+    )
+    parser.add_argument(
+        "--eval_temp", type=float, default=0.5, help="評価時の temperature"
+    )
+
+    args = parser.parse_args()
+
+    # 指定された文字列から相手エージェントを生成
+    if args.opponent == "random":
+        opp = RandomAgent()
+    elif args.opponent == "immediate":
+        opp = ImmediateWinBlockAgent()
+    elif args.opponent == "fourthree":
+        opp = FourThreePriorityAgent()
+    else:  # "longest"
+        opp = LongestChainAgent()
+
     evaluate_model(
-        policy_path=MODEL_DIR / "policy_agent_trained.pth",
-        opponent_agent=FourThreePriorityAgent(),
-        num_episodes=100,
-        board_size=9
+        policy_path=args.policy_path,
+        opponent_agent=opp,
+        num_episodes=args.num_episodes,
+        board_size=args.board_size,
+        device=args.device,
+        policy_color=args.policy_color,
+        eval_temp=args.eval_temp,
     )

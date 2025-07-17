@@ -84,7 +84,7 @@ python -m gomoku.scripts.evaluate_models
 
 ### 5. 並列学習や総当たり戦
 
-より多くのデータを集めたい場合は `gomoku/scripts/parallel_train.py` を参考に
+より多くのデータを集めたい場合は `gomoku/scripts/parallel_pg_train.py` と `gomoku/scripts/parallel_q_train.py` を参考に
 マルチプロセスで学習を回すことができます。また、複数エージェントを比較したい
 場合は `gomoku/scripts/round_robin.py` の総当たり戦機能を使うと便利です。
 

@@ -16,10 +16,15 @@ if __name__ == "__main__":
         env_params={"force_center_first_move": False, "adjacency_range": 1},
         black_agent_type="policy",
         black_agent_path=MODEL_DIR / "policy_agent_black.pth",
-        black_agent_params={"hidden_size": 128, "lr": 1e-3, "gamma": 0.95},
+        black_agent_params={
+            "hidden_size": 128,
+            "lr": 1e-3,
+            "gamma": 0.95,
+            "network_type": "dense",
+        },
         white_agent_type="policy",
         white_agent_path=MODEL_DIR / "policy_agent_white.pth",
-        white_agent_params={},
+        white_agent_params={"network_type": "dense"},
         visualize=True,
         fps=2,
     )

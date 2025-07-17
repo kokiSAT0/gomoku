@@ -76,7 +76,9 @@ def train_policy_mixed(
 
     # 相手エージェントを用意
     heuristic_agent = LongestChainAgent()
-    opponent_policy = PolicyAgent(board_size=board_size, device=device)
+    opponent_policy = PolicyAgent(
+        board_size=board_size, device=device, network_type="dense"
+    )
     opponent_policy.load_model(opponent_policy_path)
 
     wins = []
@@ -108,6 +110,7 @@ def train_policy_mixed(
         board_size=board_size,
         device=device,
         policy_color=policy_color,
+        network_type="conv",
     )
     wr_p = evaluate_model(
         policy_path=save_path,
@@ -116,6 +119,7 @@ def train_policy_mixed(
         board_size=board_size,
         device=device,
         policy_color=policy_color,
+        network_type="conv",
     )
     print(f"LongestChainAgent への勝率: {wr_h:.2f}")
     print(f"既存 PolicyAgent への勝率: {wr_p:.2f}")

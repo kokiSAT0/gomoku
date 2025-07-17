@@ -26,6 +26,7 @@ def evaluate_model(
     board_size=9,
     device=None,
     policy_color="black",
+    network_type="dense",
 ):
     """
     保存済みモデル(PolicyAgent)を読み込み、指定した相手と複数回対戦させて
@@ -43,7 +44,9 @@ def evaluate_model(
       win_rate: PolicyAgent の勝率 (0.0 ~ 1.0)
     """
     # 1) 評価対象のPolicyAgentを読み込み
-    policy_agent = PolicyAgent(board_size=board_size, device=device)
+    policy_agent = PolicyAgent(
+        board_size=board_size, device=device, network_type=network_type
+    )
     policy_agent.load_model(policy_path)  # 事前に学習済みモデルを読み込む
     policy_agent.model.eval()  # 評価モード
 
@@ -109,5 +112,6 @@ if __name__ == "__main__":
         policy_path=MODEL_DIR / "policy_agent_trained.pth",
         opponent_agent=FourThreePriorityAgent(),
         num_episodes=100,
-        board_size=9
+        board_size=9,
+        network_type="dense",
     )

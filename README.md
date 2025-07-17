@@ -11,6 +11,7 @@
   - ランダムエージェント
   - 即勝ち・ブロック優先などのヒューリスティックエージェント
   - 方策勾配を用いた `PolicyAgent`
+    - 畳み込み型の `ConvPolicyNet` と全結合型の `PolicyNet` を選択可能
   - DQN を用いた `QAgent`
 - `gomoku/scripts` には GUI 対戦やモデル学習、評価、並列学習などのスクリプトを用意
 - 学習済みモデルは `models/` フォルダに保存
@@ -57,6 +58,8 @@ python -m gomoku.scripts.play_vs_model
 
 黒番として学習済み `PolicyAgent` をロードし、白番のランダムエージェントと対戦します。
 盤面はテキストで表示されます。
+既存のモデルが全結合ネットワークで学習されている場合は
+`network_type="dense"` を指定してください。
 
 ### 3. モデルを学習する
 
@@ -82,6 +85,8 @@ python -m gomoku.scripts.evaluate_models
 ```
 
 必要に応じて `policy_path` や `opponent_agent` を変更してください。
+全結合ネットワークで学習したモデルを評価する場合は
+`network_type="dense"` を引数に指定します。
 
 ### 5. 並列学習や総当たり戦
 

@@ -4,13 +4,10 @@
 
 元の parallel_train.py から切り出して可読性を高めた。
 """
-import numpy as np
 import multiprocessing
 # CUDA 使用時に fork ベースのマルチプロセスを避けるため
 # プール生成時には 'spawn' を指定する
 from tqdm import tqdm
-import torch
-import torch.nn.functional as F
 
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import (
@@ -19,69 +16,9 @@ from ..ai.agents import (
     ImmediateWinBlockAgent,
     FourThreePriorityAgent,
     LongestChainAgent,
-    EpisodeStep
 )
 
-def play_one_episode(env, agent_black, agent_white, policy_color="black"):
-    """
-    1エピソード(=1ゲーム)を実行し、(episode_log, winner, turn_count) を返す。
-
-    Parameters
-    ----------
-    env : GomokuEnv
-        ゲーム環境
-    agent_black : Agent
-        先手のエージェント
-    agent_white : Agent
-        後手のエージェント
-    policy_color : str
-        "black" なら先手エージェントを学習対象とし、
-        "white" なら後手エージェントを学習対象とする。
-
-    学習対象エージェントの行動後に得られた報酬を episode_log に記録して返す。
-    """
-    obs = env.reset()
-    done = False
-
-    # 学習対象エージェントを決定
-    policy_agent = agent_black if policy_color == "black" else agent_white
-
-    # 学習対象エージェントのログの開始位置
-    start_log_len = len(policy_agent.episode_log)
-
-    while not done:
-        if env.current_player == 1:
-            action = agent_black.get_action(obs, env)
-        else:
-            action = agent_white.get_action(obs, env)
-
-        next_obs, reward, done, info = env.step(action)
-
-        # 学習対象の行動後であれば報酬を記録
-        if policy_color == "black" and env.current_player == 2:
-            policy_agent.record_reward(reward)
-        elif policy_color == "white" and env.current_player == 1:
-            policy_agent.record_reward(reward)
-
-        obs = next_obs
-
-    winner = info["winner"]
-    turn_count = env.turn_count
-
-    # 勝敗が決したあと、学習対象が負けていたら最後の行動に敗北報酬を与える
-    if (policy_color == "black" and winner == 2) or (
-        policy_color == "white" and winner == 1
-    ):
-        policy_agent.record_reward(-1.0)
-    elif winner == -1:
-        policy_agent.record_reward(0.0)
-
-    # 今エピソードで追加された分のログを抽出
-    end_log_len = len(policy_agent.episode_log)
-    episode_log = policy_agent.episode_log[start_log_len:end_log_len]
-
-    return episode_log, winner, turn_count
-
+from .pg_train_utils import play_one_episode, update_with_trajectories
 
 def train_worker(
     worker_id,
@@ -138,7 +75,6 @@ def train_worker(
         local_data.append((episode_log, winner, turn_count))
 
     return local_data
-
 
 def train_master(
     total_episodes=1000,
@@ -255,64 +191,4 @@ def train_master(
     return policy_agent, all_rewards, all_winners, all_turn_counts
 
 
-def update_with_trajectories(agent, all_episodes):
-    """
-    外部で収集した複数エピソード(all_episodes)をまとめて
-    REINFORCEにより学習を行うための処理。
-
-    all_episodes: [episode_log, episode_log, ...]
-      episode_log は EpisodeStep のリストまたは
-      (state_tensor, action, reward) タプルのリストを想定する。
-    agent.device に従いテンソルを GPU / CPU へ転送する。
-    """
-    import torch
-    import torch.nn.functional as F
-
-    all_states = []
-    all_actions = []
-    all_returns = []
-
-    # 各エピソードごとに割引報酬和を計算
-    for episode_log in all_episodes:
-        # EpisodeStep オブジェクトかタプルかを判定
-        if not episode_log:
-            continue
-
-        is_obj = isinstance(episode_log[0], EpisodeStep)
-
-        # --- 割引報酬和の計算 ---
-        G = 0.0
-        returns = []
-        rewards = [step.reward if is_obj else step[2] for step in episode_log]
-        for r in reversed(rewards):
-            G = agent.gamma * G + r
-            returns.insert(0, G)
-
-        # --- 状態・行動・報酬をそれぞれリストへ追加 ---
-        for idx, step in enumerate(episode_log):
-            s = step.state if is_obj else step[0]
-            a = step.action if is_obj else step[1]
-            all_states.append(s)
-            all_actions.append(a)
-            all_returns.append(returns[idx])
-
-    if len(all_states) == 0:
-        return 0.0  # 何も学習することがなかった場合
-
-    # --- 各エピソードから集めたデータをテンソルに変換しデバイスへ送る ---
-    import torch
-    states_tensor = torch.cat(all_states, dim=0).to(agent.device)
-    actions_tensor = torch.tensor(all_actions, dtype=torch.long).to(agent.device)
-    returns_tensor = torch.tensor(all_returns, dtype=torch.float32).to(agent.device)
-
-    logits = agent.model(states_tensor)
-    log_probs = F.log_softmax(logits, dim=1)
-    chosen_log_probs = log_probs[range(len(actions_tensor)), actions_tensor]
-
-    loss = - (returns_tensor * chosen_log_probs).mean()
-
-    agent.optimizer.zero_grad()
-    loss.backward()
-    agent.optimizer.step()
-
-    return loss.item()
+__all__ = ["play_one_episode", "train_worker", "train_master", "update_with_trajectories"]

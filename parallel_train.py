@@ -7,6 +7,8 @@ REINFORCE 法を用いてワーカーごとにエピソードを収集し、
 """
 import numpy as np
 import multiprocessing
+# CUDA 使用時に fork ベースのマルチプロセスを避けるため
+# プール生成時には 'spawn' を指定する
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
@@ -193,7 +195,9 @@ def train_master(
     all_turn_counts = []
     n_batches = total_episodes // batch_size
 
-    with multiprocessing.Pool(num_workers) as pool:
+    # CUDA 使用環境では fork 実行だとエラーになるため
+    # spawn コンテキストでプールを生成する
+    with multiprocessing.get_context("spawn").Pool(num_workers) as pool:
         for _ in tqdm(range(n_batches), desc="Training"):
             # 今バッチで実行するエピソード数 = batch_size
             # これをワーカーに分散
@@ -424,8 +428,8 @@ def train_master_q(
     all_winners = []
     all_turn_counts = []
 
-    # 並列実行
-    with multiprocessing.Pool(num_workers) as pool:
+    # 並列実行。CUDA 利用時もエラーにならないよう spawn 方式を選ぶ
+    with multiprocessing.get_context("spawn").Pool(num_workers) as pool:
         worker_args = []
         for wid in range(num_workers):
             worker_args.append((

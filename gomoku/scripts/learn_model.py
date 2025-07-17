@@ -7,14 +7,11 @@ PolicyAgent や QAgent の学習例が含まれており、
 """
 
 from pathlib import Path
-
-from .selfplay_utils import (
+from .selfplay import (
     selfplay_policy_vs_policy,
     selfplay_q_vs_q,
     selfplay_policy_vs_q,
 )
-from .learning_utils import plot_results
-
 # 学習済みモデルを格納するフォルダ
 MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 

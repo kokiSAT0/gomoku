@@ -13,8 +13,8 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 
-from gomoku_env import GomokuEnv
-from agents import (
+from ..core.gomoku_env import GomokuEnv
+from ..ai.agents import (
     PolicyAgent,
     RandomAgent,
     ImmediateWinBlockAgent,
@@ -378,12 +378,12 @@ def train_worker_q(
     ワーカーがローカルに QAgent を生成し、num_episodes 回の対局を実行して
     各エピソードの (reward_for_black, winner, turn_count) を返す。
     """
-    from gomoku_env import GomokuEnv
+    from ..core.gomoku_env import GomokuEnv
     if env_params is None:
         env_params = {}
 
     # 黒(QAgent)
-    from agents import QAgent
+    from ..ai.agents import QAgent
     q_agent = QAgent(board_size=board_size, **agent_params)
     # 白(対戦相手)
     white_agent = opponent_class()
@@ -419,7 +419,7 @@ def train_master_q(
     if env_params is None:
         env_params = {}
     if opponent_class is None:
-        from agents import RandomAgent
+        from ..ai.agents import RandomAgent
         opponent_class = RandomAgent
 
     episodes_per_worker = total_episodes // num_workers

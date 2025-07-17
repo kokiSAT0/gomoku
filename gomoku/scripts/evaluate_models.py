@@ -7,8 +7,8 @@
 """
 
 from pathlib import Path
-from gomoku_env import GomokuEnv
-from agents import (
+from ..core.gomoku_env import GomokuEnv
+from ..ai.agents import (
     PolicyAgent,
     RandomAgent,
     ImmediateWinBlockAgent,
@@ -17,7 +17,7 @@ from agents import (
 )  # 自作のエージェントクラスをインポート
 
 # 学習済みモデルを配置しているフォルダへのパス
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 def evaluate_model(
     policy_path=MODEL_DIR / "policy_agent_trained.pth",

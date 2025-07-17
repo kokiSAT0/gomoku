@@ -12,8 +12,9 @@ import time
 import numpy as np
 from pathlib import Path
 
-from gomoku_env import GomokuEnv
-from agents import (
+# 新しいパッケージ構成に合わせてインポート
+from ..core.gomoku_env import GomokuEnv
+from ..ai.agents import (
     PolicyAgent,
     QAgent,
     RandomAgent,
@@ -23,7 +24,8 @@ from agents import (
 )
 
 # 学習済みモデルをまとめたフォルダ
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+# 上位ディレクトリに配置されている ``models`` フォルダを取得
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 CELL_SIZE = 50                # 1マスあたりのピクセルサイズ
 LINE_COLOR = (0, 0, 0)        # グリッド線(黒)

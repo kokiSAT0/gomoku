@@ -18,16 +18,11 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## ファイル構成
+## ディレクトリ構成
 
-- `gomoku_env.py` : ゲームルールおよび強化学習用環境
-- `agents.py` : ランダム・ヒューリスティック・強化学習エージェント群
-- `play_with_pygame.py` : Pygame を使った GUI 対戦プログラム
-- `play_vs_model.py` : 学習済みモデルと端末上で対戦する簡易インタフェース
-- `learn_model.py` : 自己対戦によるモデル学習スクリプト
-- `evaluate_models.py` : 学習済みモデルの勝率評価
-- `parallel_train.py` : 並列処理を用いた学習実験用サンプル
-- `round_robin.py` : 複数エージェントの総当たり戦
+- `gomoku/core/` : ゲームロジックや補助関数を提供
+- `gomoku/ai/` : さまざまなエージェント実装を格納
+- `gomoku/scripts/` : 学習・対戦・評価用スクリプト
 
 `models/` フォルダには学習済みモデル(`*.pth`)をまとめて保存しています。
 
@@ -36,7 +31,7 @@ pip install -r requirements.txt
 ### 1. GUI で遊ぶ
 
 ```bash
-python play_with_pygame.py
+python -m gomoku.scripts.play_with_pygame
 ```
 
 初期設定では学習済み `PolicyAgent` とヒューリスティックエージェントの対戦を
@@ -45,7 +40,7 @@ python play_with_pygame.py
 ### 2. 端末上で学習済みモデルと対戦する
 
 ```bash
-python play_vs_model.py
+python -m gomoku.scripts.play_vs_model
 ```
 
 黒番として学習済み `PolicyAgent` をロードし、白番のランダムエージェントと対戦します。
@@ -53,11 +48,11 @@ python play_vs_model.py
 
 ### 3. モデルを学習する
 
-`learn_model.py` にはいくつかの自己対戦パターンが用意されています。例として
+`gomoku/scripts/learn_model.py` にはいくつかの自己対戦パターンが用意されています。
 `PolicyAgent` 同士で学習する場合は以下のように実行します。
 
 ```bash
-python learn_model.py
+python -m gomoku.scripts.learn_model
 ```
 
 デフォルトでは 9x9 の盤面で 4000 エピソードの自己対戦を行い、
@@ -66,20 +61,20 @@ python learn_model.py
 
 ### 4. モデルの評価
 
-`evaluate_models.py` を用いると、学習済みモデルと任意のエージェントとの対戦を
+`gomoku/scripts/evaluate_models.py` を用いると、学習済みモデルと任意のエージェントとの対戦を
 複数回行い勝率を測定できます。
 
 ```bash
-python evaluate_models.py
+python -m gomoku.scripts.evaluate_models
 ```
 
 必要に応じて `policy_path` や `opponent_agent` を変更してください。
 
 ### 5. 並列学習や総当たり戦
 
-より多くのデータを集めたい場合は `parallel_train.py` を参考に
+より多くのデータを集めたい場合は `gomoku/scripts/parallel_train.py` を参考に
 マルチプロセスで学習を回すことができます。また、複数エージェントを比較したい
-場合は `round_robin.py` の総当たり戦機能を使うと便利です。
+場合は `gomoku/scripts/round_robin.py` の総当たり戦機能を使うと便利です。
 
 ### 6. 学習グラフの保存先
 

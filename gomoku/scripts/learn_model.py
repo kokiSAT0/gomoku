@@ -12,9 +12,9 @@ from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 
-from gomoku_env import GomokuEnv
-from utils import moving_average, FIGURE_DIR
-from agents import (
+from ..core.gomoku_env import GomokuEnv
+from ..core.utils import moving_average, FIGURE_DIR
+from ..ai.agents import (
     PolicyAgent,
     QAgent,
     RandomAgent,
@@ -24,7 +24,7 @@ from agents import (
 )
 
 # 学習済みモデルを格納するフォルダ
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 
 def selfplay_policy_vs_policy(

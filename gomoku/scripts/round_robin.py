@@ -11,11 +11,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
-from gomoku_env import GomokuEnv
-from utils import FIGURE_DIR
+from ..core.gomoku_env import GomokuEnv
+from ..core.utils import FIGURE_DIR
 
 # 学習済みモデルの保存先ディレクトリ
-MODEL_DIR = Path(__file__).resolve().parent / "models"
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 def play_match(agent_black, agent_white, board_size=9, num_episodes=10):
     """
@@ -264,7 +264,7 @@ def plot_ranking_bar(ranking_info, agent_names, show=True):
 # 実行例
 # ------------------------------------------------------------------
 if __name__ == "__main__":
-    from agents import (
+    from ..ai.agents import (
         RandomAgent,
         PolicyAgent,
         QAgent,

@@ -6,6 +6,16 @@ import time
 import os
 import warnings
 
+# pygame の "Hello from the pygame community" 表示を抑制する
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "hide")
+
+# pkg_resources に関する警告も非表示にする
+warnings.filterwarnings(
+    "ignore",
+    message="pkg_resources is deprecated as an API",
+    category=UserWarning,
+)
+
 from ..core.gomoku_env import GomokuEnv
 from .pygame_utils import draw_board, CELL_SIZE
 from .agent_factory import create_agent

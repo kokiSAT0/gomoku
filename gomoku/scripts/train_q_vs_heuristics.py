@@ -17,6 +17,7 @@ from typing import Type
 
 from .parallel_q_train import train_master_q
 from .play_utils import play_game_text
+from tqdm import tqdm
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import (
     RandomAgent,
@@ -41,6 +42,7 @@ def train_q_vs_heuristics(
     plateau_patience: int = 2,
     stop_win_rate: float = 0.9,
     interactive: bool = False,
+    show_progress: bool = True,
 ):
     """複数のヒューリスティック相手に QAgent を順番に学習させる
 
@@ -56,6 +58,7 @@ def train_q_vs_heuristics(
         plateau_patience: 停滞を確認する期間
         stop_win_rate: 学習終了と判断する勝率
         interactive: True の場合、各フェーズ終了時に続行するか確認する
+        show_progress: 進捗バーを表示するかどうか
     """
 
     if env_params is None:
@@ -73,7 +76,11 @@ def train_q_vs_heuristics(
     q_agent = None
     win_rates: list[float] = []
 
-    for phase, opp in enumerate(opponent_classes, start=1):
+    phase_iter = enumerate(opponent_classes, start=1)
+    if show_progress:
+        phase_iter = tqdm(phase_iter, total=len(opponent_classes), desc="Phase")
+
+    for phase, opp in phase_iter:
         print(f"\n==== フェーズ {phase}: 対戦相手 = {opp.__name__} ====")
         # `train_master_q` はワーカーから得た遷移をマスター側で学習する
         # 方式に変更されたため、返り値のエージェントが常に最新のものとなる
@@ -85,6 +92,7 @@ def train_q_vs_heuristics(
             agent_params=agent_params,
             env_params=env_params,
             opponent_class=opp,
+            show_progress=show_progress,
         )
 
         win_rate = sum(1 for w in winners if w == 1) / len(winners)
@@ -130,6 +138,11 @@ def main() -> None:
         action="store_true",
         help="各フェーズ終了後に次へ進むかを確認する",
     )
+    parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="tqdmによる進捗表示を無効化する",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -142,6 +155,7 @@ def main() -> None:
         num_workers=args.num_workers,
         interactive=args.interactive,
         agent_params=agent_params,
+        show_progress=(not args.no_progress),
     )
 
     print("\n=== 学習後の対戦例 ===")

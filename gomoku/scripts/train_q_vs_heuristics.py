@@ -42,9 +42,9 @@ DEFAULT_CHECK_INTERVAL = 1000
 
 
 def train_q_vs_heuristics(
-    episodes_per_phase: int = 500,
+    episodes_per_phase: int = 50000,
     board_size: int = 9,
-    num_workers: int = 4,
+    num_workers: int = 20,
     env_params: dict | None = None,
     agent_params: dict | None = None,
     opponent_classes: list[Type] | None = None,
@@ -187,11 +187,11 @@ def demo_play(q_agent, opponent_agent, board_size: int = 9) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="QAgent 段階学習デモ")
-    parser.add_argument("--episodes", type=int, default=500, help="各フェーズのエピソード数")
+    parser.add_argument("--episodes", type=int, default=50000, help="各フェーズのエピソード数")
     # 例: 100 なら素早く動作確認、2000 以上ならじっくり学習
     parser.add_argument("--board-size", type=int, default=9, help="盤面サイズ")
     # 例: 5 を指定すると 5x5 の小盤面で高速に検証できる
-    parser.add_argument("--num-workers", type=int, default=4, help="並列ワーカー数")
+    parser.add_argument("--num-workers", type=int, default=20, help="並列ワーカー数")
     parser.add_argument("--device", default=None, help="使用デバイス(cuda/cpu)")
     parser.add_argument(
         "--interactive",

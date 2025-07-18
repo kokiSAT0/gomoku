@@ -39,8 +39,22 @@ def train_q_vs_heuristics(
     plateau_threshold: float = 0.01,
     plateau_patience: int = 2,
     stop_win_rate: float = 0.9,
+    interactive: bool = False,
 ):
-    """複数のヒューリスティック相手に QAgent を順番に学習させる"""
+    """複数のヒューリスティック相手に QAgent を順番に学習させる
+
+    Args:
+        episodes_per_phase: 各フェーズの試行回数
+        board_size: 盤面の大きさ
+        num_workers: 並列ワーカー数
+        env_params: 環境に渡す追加パラメータ
+        agent_params: エージェント作成時のパラメータ
+        opponent_classes: 対戦相手となるエージェントクラスのリスト
+        plateau_threshold: 勝率向上が停滞したとみなす閾値
+        plateau_patience: 停滞を確認する期間
+        stop_win_rate: 学習終了と判断する勝率
+        interactive: True の場合、各フェーズ終了時に続行するか確認する
+    """
 
     if env_params is None:
         env_params = {}
@@ -85,6 +99,12 @@ def train_q_vs_heuristics(
                 print("勝率が頭打ちと判断したため学習を終了します")
                 break
 
+        # --- インタラクティブモード -------------------------------
+        if interactive and phase < len(opponent_classes):
+            ans = input("次の相手に進みますか? (y/N): ").strip().lower()
+            if ans not in ("y", "yes"):
+                break
+
     return q_agent, opp()
 
 
@@ -100,12 +120,18 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=500, help="各フェーズのエピソード数")
     parser.add_argument("--board-size", type=int, default=9, help="盤面サイズ")
     parser.add_argument("--num-workers", type=int, default=4, help="並列ワーカー数")
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="各フェーズ終了後に次へ進むかを確認する",
+    )
     args = parser.parse_args()
 
     q_agent, last_opponent = train_q_vs_heuristics(
         episodes_per_phase=args.episodes,
         board_size=args.board_size,
         num_workers=args.num_workers,
+        interactive=args.interactive,
     )
 
     print("\n=== 学習後の対戦例 ===")

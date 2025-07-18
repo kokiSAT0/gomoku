@@ -75,6 +75,8 @@ def train_q_vs_heuristics(
 
     for phase, opp in enumerate(opponent_classes, start=1):
         print(f"\n==== フェーズ {phase}: 対戦相手 = {opp.__name__} ====")
+        # `train_master_q` はワーカーから得た遷移をマスター側で学習する
+        # 方式に変更されたため、返り値のエージェントが常に最新のものとなる
         q_agent, rewards, winners, _ = train_master_q(
             total_episodes=episodes_per_phase,
             batch_size=max(1, episodes_per_phase // num_workers),

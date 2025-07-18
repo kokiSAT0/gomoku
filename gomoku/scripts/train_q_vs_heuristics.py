@@ -31,6 +31,10 @@ from ..ai.agents import (
 MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 MODEL_DIR.mkdir(exist_ok=True)
 
+# check_interval のデフォルト値を定数として定義
+# CLI と関数の両方で同じ値を使うことで設定ミスを防ぐ
+DEFAULT_CHECK_INTERVAL = 100
+
 
 def train_q_vs_heuristics(
     episodes_per_phase: int = 500,
@@ -44,7 +48,7 @@ def train_q_vs_heuristics(
     stop_win_rate: float = 0.9,
     interactive: bool = False,
     show_progress: bool = True,
-    check_interval: int = 100,
+    check_interval: int = DEFAULT_CHECK_INTERVAL,
 ):
     """複数のヒューリスティック相手に QAgent を順番に学習させる
 
@@ -180,7 +184,7 @@ def main() -> None:
     parser.add_argument(
         "--check-interval",
         type=int,
-        default=100,
+        default=DEFAULT_CHECK_INTERVAL,
         help="勝率確認を行うエピソード間隔",
     )
     args = parser.parse_args()

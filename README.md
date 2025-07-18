@@ -95,6 +95,8 @@ python -m gomoku.scripts.evaluate_models
 より多くのデータを集めたい場合は `gomoku/scripts/parallel_pg_train.py` と `gomoku/scripts/parallel_q_train.py` を参考に
 マルチプロセスで学習を回すことができます。また、複数エージェントを比較したい
 場合は `gomoku/scripts/round_robin.py` の総当たり戦機能を使うと便利です。
+`parallel_q_train.py` ではワーカー間で ``epsilon`` 値を共有できるよう
+`train_worker_q` と `train_master_q` に引数が追加されています。
 
 ### 6. 学習グラフの保存先
 

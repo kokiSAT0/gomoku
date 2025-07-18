@@ -83,16 +83,36 @@ def train_worker_q(
     model_state,
     opponent_class,
     env_params=None,
+    epsilon=None,
+    epsilon_step=None,
 ):
     """ワーカー側で QAgent を生成し複数エピソードを実行する。
 
     ``model_state`` で渡された重みをロードし、学習は行わずに遷移
-    情報のみを収集する。"""
+    情報のみを収集する。
+
+    Parameters
+    ----------
+    epsilon : float | None
+        学習途中の ε 値を指定する。``None`` の場合はエージェント既定値を使用。
+    epsilon_step : int | None
+        ε 減衰の進捗を示すステップ数。こちらも ``None`` なら 0 から開始する。
+
+    Returns
+    -------
+    list[tuple[float, int, int]], list[tuple], float, int
+        各エピソードの報酬などと遷移データ、最終的な ``epsilon`` と
+        ``epsilon_step`` をまとめて返す。
+    """
     if env_params is None:
         env_params = {}
 
     q_agent = QAgent(board_size=board_size, **agent_params)
     q_agent.qnet.load_state_dict(model_state)
+    if epsilon is not None:
+        q_agent.epsilon = epsilon
+    if epsilon_step is not None:
+        q_agent.epsilon_step = epsilon_step
     white_agent = opponent_class()
 
     env = GomokuEnv(board_size=board_size, **env_params)
@@ -108,7 +128,7 @@ def train_worker_q(
         )
         local_data.append((r_for_black, winner, turn_count))
         transitions.extend(trans)
-    return local_data, transitions
+    return local_data, transitions, q_agent.epsilon, q_agent.epsilon_step
 
 
 def train_master_q(
@@ -131,6 +151,8 @@ def train_master_q(
     1 つの QAgent をマスター側で保持し、各ワーカーはモデルの重みを
     受け取って遷移のみを収集する。集めた遷移はマスターでまとめて
     ``train_on_batch`` を呼び出しながら学習を進める。
+    ワーカーでは ``epsilon`` と ``epsilon_step`` を引き継いで行動を選択し、
+    最終的な値をマスター側で集計して更新する。
 
     Parameters
     ----------
@@ -176,6 +198,10 @@ def train_master_q(
             # エピソード数をワーカーへ均等に割り当てる
             per_worker = _split_episodes(batch_eps, num_workers)
             worker_args = []
+            # 現在の epsilon 値とステップ数を控えておき、
+            # 各ワーカーで同じ値から開始させる
+            start_eps = q_agent.epsilon
+            start_step = q_agent.epsilon_step
             for wid, n_ep in enumerate(per_worker):
                 if n_ep == 0:
                     continue
@@ -188,24 +214,31 @@ def train_master_q(
                         model_state,
                         opponent_class,
                         env_params,
+                        start_eps,
+                        start_step,
                     )
                 )
 
             results = active_pool.starmap(train_worker_q, worker_args)
 
             # 集約した遷移で学習
-            for (local_data, transitions) in results:
+            total_inc = 0
+            for (local_data, transitions, w_eps, w_step) in results:
                 for (r, w, t) in local_data:
                     all_rewards.append(r)
                     all_winners.append(w)
                     all_turn_counts.append(t)
                 for trans in transitions:
                     q_agent.buffer.push(*trans)
-                    _update_epsilon(q_agent, 1)
                     # QAgent 自身が持つバッチサイズに達しているかを確認してから学習
                     # (train_master_q の batch_size 引数とは異なる点に注意)
                     if len(q_agent.buffer) >= q_agent.batch_size:
                         q_agent.train_on_batch()
+                total_inc += w_step - start_step
+
+            if total_inc > 0:
+                # すべてのワーカーで消費した手数ぶん epsilon を更新
+                _update_epsilon(q_agent, total_inc)
 
             pbar.update(batch_eps)
         pbar.close()

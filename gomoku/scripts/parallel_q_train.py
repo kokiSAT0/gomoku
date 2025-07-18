@@ -194,7 +194,9 @@ def train_master_q(
                 for trans in transitions:
                     q_agent.buffer.push(*trans)
                     _update_epsilon(q_agent, 1)
-                    if len(q_agent.buffer) >= batch_size:
+                    # QAgent 自身が持つバッチサイズに達しているかを確認してから学習
+                    # (train_master_q の batch_size 引数とは異なる点に注意)
+                    if len(q_agent.buffer) >= q_agent.batch_size:
                         q_agent.train_on_batch()
 
             pbar.update(batch_eps)

@@ -121,6 +121,7 @@ def train_master_q(
     opponent_class=None,
     show_progress: bool = False,
     q_agent: QAgent | None = None,
+    pool=None,
 ):
     """QAgent を並列で学習する簡易例。
 
@@ -135,6 +136,10 @@ def train_master_q(
     ----------
     show_progress : bool
         tqdm による進捗バーを表示するかどうか
+    pool : multiprocessing.pool.Pool | None
+        既に生成済みのプールを与えるとそのプールを利用する。``None`` の
+        場合はこの関数内で新しくプールを作成し、処理終了後にクローズ
+        する。
     """
     if agent_params is None:
         agent_params = {}
@@ -155,8 +160,8 @@ def train_master_q(
     n_batches = ceil(total_episodes / batch_size)
     remaining = total_episodes
 
-    # 並列実行。CUDA 環境でも安全な spawn 方式でプールを作成
-    with multiprocessing.get_context("spawn").Pool(num_workers) as pool:
+    def _run(active_pool):
+        """与えられたプールで実際の並列処理を行う内部関数"""
         pbar = tqdm(total=total_episodes, desc="Training", disable=(not show_progress))
         for _ in range(n_batches):
             batch_eps = min(batch_size, remaining)
@@ -183,7 +188,7 @@ def train_master_q(
                     )
                 )
 
-            results = pool.starmap(train_worker_q, worker_args)
+            results = active_pool.starmap(train_worker_q, worker_args)
 
             # 集約した遷移で学習
             for (local_data, transitions) in results:
@@ -201,6 +206,13 @@ def train_master_q(
 
             pbar.update(batch_eps)
         pbar.close()
+
+    # プールが渡されていない場合だけ自前で生成し終了時に閉じる
+    if pool is None:
+        with multiprocessing.get_context("spawn").Pool(num_workers) as p:
+            _run(p)
+    else:
+        _run(pool)
 
     # 更新された q_agent をそのまま返す
     return q_agent, all_rewards, all_winners, all_turn_counts

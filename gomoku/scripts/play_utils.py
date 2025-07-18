@@ -1,9 +1,10 @@
 """ゲーム実行用のユーティリティ関数群"""
 
 from pathlib import Path
-import pygame
 import sys
 import time
+import os
+import warnings
 
 from ..core.gomoku_env import GomokuEnv
 from .pygame_utils import draw_board, CELL_SIZE
@@ -19,7 +20,20 @@ def play_game(env: GomokuEnv, black_agent, white_agent, visualize: bool = True, 
     obs = env.reset()
     done = False
 
+    # Pygame を利用する場合のみインポートする
     if visualize:
+        # "Hello from the pygame community" メッセージを抑制する
+        os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "hide")
+
+        # pkg_resources に関する警告も非表示にする
+        warnings.filterwarnings(
+            "ignore",
+            message="pkg_resources is deprecated as an API",
+            category=UserWarning,
+        )
+
+        import pygame
+
         pygame.init()
         board_px_size = env.board_size * CELL_SIZE
         screen = pygame.display.set_mode((board_px_size, board_px_size))

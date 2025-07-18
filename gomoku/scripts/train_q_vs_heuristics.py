@@ -38,7 +38,7 @@ MODEL_DIR.mkdir(exist_ok=True)
 
 # check_interval のデフォルト値を定数として定義
 # CLI と関数の両方で同じ値を使うことで設定ミスを防ぐ
-DEFAULT_CHECK_INTERVAL = 100
+DEFAULT_CHECK_INTERVAL = 1000
 
 
 def train_q_vs_heuristics(

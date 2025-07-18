@@ -124,6 +124,18 @@ python -m gomoku.scripts.train_policy_mixed --episodes 2000
 python -m gomoku.scripts.train_q_vs_heuristics --episodes 500 --device cuda
 ```
 
+盤面サイズを小さくして手早く試す場合は次のように指定します。
+
+```bash
+python -m gomoku.scripts.train_q_vs_heuristics --board-size 5 --episodes 100
+```
+
+より安定した結果を得るためにエピソード数を増やしたいときは以下のように実行します。
+
+```bash
+python -m gomoku.scripts.train_q_vs_heuristics --episodes 2000 --device cuda
+```
+
 学習は ``check_interval`` ごとに勝率を確認し、伸びがほぼ無くなった段階で
 フェーズを途中終了します。 ``--interactive`` オプションを付けると、この
 早期終了時に次のフェーズへ進むかを確認してくれます。最後に 1 戦だけテキス

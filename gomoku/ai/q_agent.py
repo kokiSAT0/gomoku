@@ -19,13 +19,14 @@ MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 MODEL_DIR.mkdir(exist_ok=True)
 
 
-class QNet(nn.Module):
-    """盤面を状態として行動価値を出力する小さなネットワーク"""
+class FCQNet(nn.Module):
+    """盤面を一次元ベクトルとして処理する全結合型 Q ネットワーク"""
 
     def __init__(self, board_size: int = 9, hidden_size: int = 128) -> None:
         super().__init__()
         input_dim = board_size * board_size
         output_dim = board_size * board_size
+        # 単純な二層の全結合ネットワーク
         self.fc1 = nn.Linear(input_dim, hidden_size)
         self.fc2 = nn.Linear(hidden_size, output_dim)
 
@@ -33,6 +34,37 @@ class QNet(nn.Module):
         h = F.relu(self.fc1(x))
         q = self.fc2(h)
         return q
+
+
+class ConvQNet(nn.Module):
+    """畳み込み層を用いた Q ネットワーク"""
+
+    def __init__(self, board_size: int = 9, hidden_size: int = 64) -> None:
+        super().__init__()
+        self.board_size = board_size
+        out_dim = board_size * board_size
+
+        # 3x3 の畳み込み層を重ねて局所的な特徴を学習させる
+        self.conv1 = nn.Conv2d(1, hidden_size, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, padding=1)
+
+        # 畳み込み後の特徴マップを全結合層へ入力
+        self.fc = nn.Linear(hidden_size * board_size * board_size, out_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b = x.size(0)
+        h = x.view(b, 1, self.board_size, self.board_size)
+        h = F.relu(self.conv1(h))
+        h = F.relu(self.conv2(h))
+        h = F.relu(self.conv3(h))
+        h = h.view(b, -1)
+        q = self.fc(h)
+        return q
+
+
+# 後方互換性のため旧名称をエイリアスとして残す
+QNet = FCQNet
 
 
 class QAgent:
@@ -51,6 +83,7 @@ class QAgent:
         batch_size: int = 64,
         update_frequency: int = 10,
         device: str | None = None,
+        network_type: str = "fc",
     ) -> None:
         self.board_size = board_size
         self.gamma = gamma
@@ -67,8 +100,13 @@ class QAgent:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
 
-        # ネットワークとオプティマイザを初期化しデバイスへ転送
-        self.qnet = QNet(board_size, hidden_size).to(self.device)
+        # ネットワークの種類を選択して初期化
+        if network_type.lower() == "conv":
+            self.qnet = ConvQNet(board_size, hidden_size).to(self.device)
+        else:
+            self.qnet = FCQNet(board_size, hidden_size).to(self.device)
+        self.network_type = network_type
+        # オプティマイザを設定
         self.optimizer = optim.Adam(self.qnet.parameters(), lr=lr)
 
         self.buffer = ReplayBuffer(replay_capacity)

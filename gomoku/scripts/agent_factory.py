@@ -17,6 +17,7 @@ def create_agent(agent_type: str, board_size: int, agent_path: Path | None = Non
     agent_type の文字列から適切なエージェントインスタンスを生成する。
 
     - ``policy`` / ``q`` などモデル読み込みを伴うタイプは ``agent_path`` を用いる。
+    - ``agent_params`` に ``network_type`` を与えるとネットワーク形式を切り替えられる。
     - 指定が不明な場合は ``RandomAgent`` を返す。
     """
     if agent_params is None:

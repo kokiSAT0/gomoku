@@ -30,6 +30,7 @@ def evaluate_model(
     device=None,
     policy_color="black",
     network_type="dense",
+    q_network_type="fc",
     eval_temp=0.5,
     agent_type="policy",
 ):
@@ -60,7 +61,9 @@ def evaluate_model(
         eval_agent.model.eval()
         eval_agent.temp = eval_temp
     else:
-        eval_agent = QAgent(board_size=board_size)
+        eval_agent = QAgent(
+            board_size=board_size, device=device, network_type=q_network_type
+        )
         eval_agent.load_model(q_path)
 
     def play_single_game(black, white) -> int:
@@ -172,6 +175,12 @@ if __name__ == "__main__":
         default="dense",
         help="PolicyAgent のネットワーク形式",
     )
+    parser.add_argument(
+        "--q_network_type",
+        choices=["fc", "conv"],
+        default="fc",
+        help="QAgent のネットワーク形式",
+    )
 
     args = parser.parse_args()
 
@@ -194,6 +203,7 @@ if __name__ == "__main__":
         device=args.device,
         policy_color=args.policy_color,
         network_type=args.network_type,
+        q_network_type=args.q_network_type,
         eval_temp=args.eval_temp,
         agent_type=args.agent_type,
     )

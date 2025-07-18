@@ -50,6 +50,7 @@ class QAgent:
         replay_capacity: int = 10000,
         batch_size: int = 64,
         update_frequency: int = 10,
+        device: str | None = None,
     ) -> None:
         self.board_size = board_size
         self.gamma = gamma
@@ -61,7 +62,13 @@ class QAgent:
         self.epsilon_decay = epsilon_decay
         self.epsilon_step = 0
 
-        self.qnet = QNet(board_size, hidden_size)
+        # デバイス指定が無ければ CUDA が利用可能かを確認
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
+
+        # ネットワークとオプティマイザを初期化しデバイスへ転送
+        self.qnet = QNet(board_size, hidden_size).to(self.device)
         self.optimizer = optim.Adam(self.qnet.parameters(), lr=lr)
 
         self.buffer = ReplayBuffer(replay_capacity)
@@ -75,9 +82,14 @@ class QAgent:
                 return 0
             action = random.choice(valid_actions)
         else:
-            state_t = torch.tensor(obs.flatten(), dtype=torch.float32).unsqueeze(0)
+            # 盤面をテンソル化してネットワークへ入力
+            state_t = (
+                torch.tensor(obs.flatten(), dtype=torch.float32)
+                .unsqueeze(0)
+                .to(self.device)
+            )
             with torch.no_grad():
-                q_values = self.qnet(state_t).numpy().flatten()
+                q_values = self.qnet(state_t).cpu().numpy().flatten()
             q_values = mask_q_values(q_values, valid_actions)
             action = int(np.argmax(q_values))
 
@@ -99,11 +111,12 @@ class QAgent:
         states_np = s.reshape(self.batch_size, -1)
         next_states_np = s_next.reshape(self.batch_size, -1)
 
-        states_t = torch.from_numpy(states_np)
-        actions_t = torch.tensor(a, dtype=torch.long)
-        rewards_t = torch.tensor(r, dtype=torch.float32)
-        next_states_t = torch.from_numpy(next_states_np)
-        dones_t = torch.tensor(d, dtype=torch.float32)
+        # NumPy 配列をテンソル化し GPU へ転送
+        states_t = torch.from_numpy(states_np).to(self.device)
+        actions_t = torch.tensor(a, dtype=torch.long).to(self.device)
+        rewards_t = torch.tensor(r, dtype=torch.float32).to(self.device)
+        next_states_t = torch.from_numpy(next_states_np).to(self.device)
+        dones_t = torch.tensor(d, dtype=torch.float32).to(self.device)
 
         q_values = self.qnet(states_t)
         q_a = q_values[range(self.batch_size), actions_t]
@@ -127,5 +140,8 @@ class QAgent:
         torch.save(self.qnet.state_dict(), path)
 
     def load_model(self, path: Path = MODEL_DIR / "q_agent.pth") -> None:
-        self.qnet.load_state_dict(torch.load(path))
+        # 保存されている重みを現在のデバイスへ読み込む
+        state = torch.load(path, map_location=self.device)
+        self.qnet.load_state_dict(state)
+        self.qnet.to(self.device)
         self.qnet.eval()

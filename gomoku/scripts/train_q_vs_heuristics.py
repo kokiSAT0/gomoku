@@ -43,6 +43,7 @@ def train_q_vs_heuristics(
     stop_win_rate: float = 0.9,
     interactive: bool = False,
     show_progress: bool = True,
+    check_interval: int = 100,
 ):
     """複数のヒューリスティック相手に QAgent を順番に学習させる
 
@@ -59,6 +60,7 @@ def train_q_vs_heuristics(
         stop_win_rate: 学習終了と判断する勝率
         interactive: True の場合、各フェーズ終了時に続行するか確認する
         show_progress: 進捗バーを表示するかどうか
+        check_interval: 勝率を確認するエピソード間隔
     """
 
     if env_params is None:
@@ -82,26 +84,52 @@ def train_q_vs_heuristics(
 
     for phase, opp in phase_iter:
         print(f"\n==== フェーズ {phase}: 対戦相手 = {opp.__name__} ====")
-        # `train_master_q` はワーカーから得た遷移をマスター側で学習する
-        # 方式に変更されたため、返り値のエージェントが常に最新のものとなる
-        q_agent, rewards, winners, _ = train_master_q(
-            total_episodes=episodes_per_phase,
-            batch_size=max(1, episodes_per_phase // num_workers),
-            board_size=board_size,
-            num_workers=num_workers,
-            agent_params=agent_params,
-            env_params=env_params,
-            opponent_class=opp,
-            show_progress=show_progress,
-        )
+        phase_win_rates: list[float] = []
+        remaining = episodes_per_phase
+        early_stop = False
 
-        win_rate = sum(1 for w in winners if w == 1) / len(winners)
-        avg_reward = sum(rewards) / len(rewards)
-        win_rates.append(win_rate)
-        print(f"勝率: {win_rate:.3f}, 平均報酬: {avg_reward:.3f}")
+        # check_interval ごとに学習を行い、勝率の伸びを逐次確認する
+        while remaining > 0:
+            cur_eps = min(check_interval, remaining)
+            remaining -= cur_eps
 
-        # --- 学習停止判定 -------------------------------------------
-        if win_rate >= stop_win_rate:
+            q_agent, rewards, winners, _ = train_master_q(
+                total_episodes=cur_eps,
+                batch_size=max(1, cur_eps // num_workers),
+                board_size=board_size,
+                num_workers=num_workers,
+                agent_params=agent_params,
+                env_params=env_params,
+                opponent_class=opp,
+                show_progress=show_progress,
+                q_agent=q_agent,
+            )
+
+            win_rate = sum(1 for w in winners if w == 1) / len(winners)
+            avg_reward = sum(rewards) / len(rewards)
+            phase_win_rates.append(win_rate)
+            win_rates.append(win_rate)
+            print(
+                f"区間勝率: {win_rate:.3f}, 区間平均報酬: {avg_reward:.3f}"
+            )
+
+            # --- フェーズ内での停滞判定 -----------------------------
+            if len(phase_win_rates) > plateau_patience:
+                recent = phase_win_rates[-plateau_patience - 1 :]
+                improvement = max(recent) - min(recent)
+                if improvement < plateau_threshold:
+                    print("勝率が頭打ちになったためフェーズを早期終了します")
+                    early_stop = True
+                    if interactive:
+                        ans = input("次の相手に進みますか? (y/N): ").strip().lower()
+                        if ans not in ("y", "yes"):
+                            return q_agent, opp()
+                    break
+
+        final_win = phase_win_rates[-1] if phase_win_rates else 0.0
+
+        # --- フェーズ終了後の学習停止判定 ---------------------------
+        if final_win >= stop_win_rate:
             print("目標勝率に到達したため学習を終了します")
             break
         if len(win_rates) > plateau_patience:
@@ -111,8 +139,8 @@ def train_q_vs_heuristics(
                 print("勝率が頭打ちと判断したため学習を終了します")
                 break
 
-        # --- インタラクティブモード -------------------------------
-        if interactive and phase < len(opponent_classes):
+        # フェーズ内で早期終了しなかった場合のみ確認を行う
+        if not early_stop and interactive and phase < len(opponent_classes):
             ans = input("次の相手に進みますか? (y/N): ").strip().lower()
             if ans not in ("y", "yes"):
                 break
@@ -143,6 +171,12 @@ def main() -> None:
         action="store_true",
         help="tqdmによる進捗表示を無効化する",
     )
+    parser.add_argument(
+        "--check-interval",
+        type=int,
+        default=100,
+        help="勝率確認を行うエピソード間隔",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -156,6 +190,7 @@ def main() -> None:
         interactive=args.interactive,
         agent_params=agent_params,
         show_progress=(not args.no_progress),
+        check_interval=args.check_interval,
     )
 
     print("\n=== 学習後の対戦例 ===")

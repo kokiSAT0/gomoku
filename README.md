@@ -124,8 +124,11 @@ python -m gomoku.scripts.train_policy_mixed --episodes 2000
 python -m gomoku.scripts.train_q_vs_heuristics --episodes 500 --device cuda
 ```
 
-勝率の伸びが小さくなった時点で学習を停止し、最後に 1 戦だけテキスト表示で
-対局結果を確認できます。GPU を利用する場合は ``--device cuda`` を指定します。
+学習は ``check_interval`` ごとに勝率を確認し、伸びがほぼ無くなった段階で
+フェーズを途中終了します。 ``--interactive`` オプションを付けると、この
+早期終了時に次のフェーズへ進むかを確認してくれます。最後に 1 戦だけテキス
+ト表示で対局結果を確認できます。GPU を利用する場合は ``--device cuda`` を
+指定します。
 
 ## 注意点
 

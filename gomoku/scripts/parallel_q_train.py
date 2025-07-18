@@ -120,8 +120,12 @@ def train_master_q(
     env_params=None,
     opponent_class=None,
     show_progress: bool = False,
+    q_agent: QAgent | None = None,
 ):
     """QAgent を並列で学習する簡易例。
+
+    q_agent を引数で受け取った場合はそのまま利用し、新しく生成しない。
+    学習を継続したいときに便利。
 
     1 つの QAgent をマスター側で保持し、各ワーカーはモデルの重みを
     受け取って遷移のみを収集する。集めた遷移はマスターでまとめて
@@ -139,8 +143,10 @@ def train_master_q(
     if opponent_class is None:
         opponent_class = RandomAgent
 
-    # マスターで共有する QAgent を生成
-    q_agent = QAgent(board_size=board_size, **agent_params)
+    # q_agent が渡されていない場合のみ新規に生成する
+    # 既存エージェントを使うことで学習状態を引き継げる
+    if q_agent is None:
+        q_agent = QAgent(board_size=board_size, **agent_params)
 
     all_rewards = []
     all_winners = []
@@ -194,4 +200,5 @@ def train_master_q(
             pbar.update(batch_eps)
         pbar.close()
 
+    # 更新された q_agent をそのまま返す
     return q_agent, all_rewards, all_winners, all_turn_counts

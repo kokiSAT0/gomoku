@@ -85,7 +85,9 @@ def train_q_vs_heuristics(
 
     for phase, opp in phase_iter:
         print(f"\n==== フェーズ {phase}: 対戦相手 = {opp.__name__} ====")
-        phase_win_rates: list[float] = []
+        phase_win_rates: list[float] = []  # 区間ごとの勝率を蓄積
+        phase_rewards: list[float] = []   # フェーズ全体の報酬記録用
+        phase_winners: list[int] = []     # 勝敗結果を全て記録
         remaining = episodes_per_phase
         early_stop = False
 
@@ -110,29 +112,42 @@ def train_q_vs_heuristics(
                     pool=pool,  # プールを共有して無駄な生成を避ける
                 )
 
-            win_rate = sum(1 for w in winners if w == 1) / len(winners)
-            avg_reward = sum(rewards) / len(rewards)
-            phase_win_rates.append(win_rate)
-            win_rates.append(win_rate)
-            print(
-                f"区間勝率: {win_rate:.3f}, 区間平均報酬: {avg_reward:.3f}"
-            )
+                # 各区間の結果を蓄積
+                phase_rewards.extend(rewards)
+                phase_winners.extend(winners)
 
-            # --- フェーズ内での停滞判定 -----------------------------
-            if len(phase_win_rates) > plateau_patience:
-                recent = phase_win_rates[-plateau_patience - 1 :]
-                improvement = max(recent) - min(recent)
-                if improvement < plateau_threshold:
-                    print("勝率が頭打ちになったためフェーズを早期終了します")
-                    early_stop = True
-                    if interactive:
-                        ans = input("次の相手に進みますか? (y/N): ").strip().lower()
-                        if ans not in ("y", "yes"):
-                            return q_agent, opp()
-                    break
+                win_rate = sum(1 for w in winners if w == 1) / len(winners)
+                avg_reward = sum(rewards) / len(rewards)
+                phase_win_rates.append(win_rate)
+                win_rates.append(win_rate)
+                print(
+                    f"区間勝率: {win_rate:.3f}, 区間平均報酬: {avg_reward:.3f}"
+                )
+
+                # --- フェーズ内での停滞判定 -------------------------
+                if len(phase_win_rates) > plateau_patience:
+                    recent = phase_win_rates[-plateau_patience - 1 :]
+                    improvement = max(recent) - min(recent)
+                    if improvement < plateau_threshold:
+                        print("勝率が頭打ちになったためフェーズを早期終了します")
+                        early_stop = True
+                        if interactive:
+                            ans = input("次の相手に進みますか? (y/N): ").strip().lower()
+                            if ans not in ("y", "yes"):
+                                return q_agent, opp()
+                        break
 
         # with ブロックを抜けるとここでプールが自動的に解放される
-        final_win = phase_win_rates[-1] if phase_win_rates else 0.0
+        if phase_winners:
+            final_win = sum(1 for w in phase_winners if w == 1) / len(phase_winners)
+            final_reward = sum(phase_rewards) / len(phase_rewards)
+        else:
+            final_win = 0.0
+            final_reward = 0.0
+
+        print(
+            f"フェーズ{phase}終了: 勝率 {final_win:.3f}, 平均報酬 {final_reward:.3f}"
+        )
 
         # --- フェーズ終了後の学習停止判定 ---------------------------
         if final_win >= stop_win_rate:

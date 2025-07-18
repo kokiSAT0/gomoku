@@ -6,6 +6,11 @@ parallel_q_train.train_master_q() を呼び出し、相手クラスを変えな�
 簡易的なプラトー判定により学習を早期終了することもある。
 最終的に play_utils.play_game_text() を用いて 1 戦だけ対局を再現し、
 盤面を ASCII 表示する。
+
+盤面サイズは ``--board-size`` オプションで変更できる。5×5 など小さめにすると
+学習時間を短縮でき、15×15 のように大きめにするとより実戦的な検証が可能。
+各フェーズのエピソード数も ``--episodes`` で調整でき、少ない値で素早く動作確認を、
+大きい値では安定した学習を期待できる。
 """
 
 from __future__ import annotations
@@ -183,7 +188,9 @@ def demo_play(q_agent, opponent_agent, board_size: int = 9) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="QAgent 段階学習デモ")
     parser.add_argument("--episodes", type=int, default=500, help="各フェーズのエピソード数")
+    # 例: 100 なら素早く動作確認、2000 以上ならじっくり学習
     parser.add_argument("--board-size", type=int, default=9, help="盤面サイズ")
+    # 例: 5 を指定すると 5x5 の小盤面で高速に検証できる
     parser.add_argument("--num-workers", type=int, default=4, help="並列ワーカー数")
     parser.add_argument("--device", default=None, help="使用デバイス(cuda/cpu)")
     parser.add_argument(

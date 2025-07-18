@@ -162,6 +162,9 @@ def train_master_q(
 
     def _run(active_pool):
         """与えられたプールで実際の並列処理を行う内部関数"""
+        # 外側の remaining を更新する必要があるため nonlocal 宣言する
+        nonlocal remaining
+
         pbar = tqdm(total=total_episodes, desc="Training", disable=(not show_progress))
         for _ in range(n_batches):
             batch_eps = min(batch_size, remaining)

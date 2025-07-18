@@ -129,6 +129,8 @@ python -m gomoku.scripts.train_q_vs_heuristics --episodes 500 --device cuda
 早期終了時に次のフェーズへ進むかを確認してくれます。最後に 1 戦だけテキス
 ト表示で対局結果を確認できます。GPU を利用する場合は ``--device cuda`` を
 指定します。
+なお評価間隔は ``--check-interval`` オプションで変更可能で、
+デフォルトは 100 エピソードごととなっています。
 
 ## 注意点
 

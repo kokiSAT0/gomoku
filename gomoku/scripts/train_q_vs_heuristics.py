@@ -17,6 +17,7 @@ from typing import Type
 
 from .parallel_q_train import train_master_q
 from .play_utils import play_game_text
+import multiprocessing
 from tqdm import tqdm
 from ..core.gomoku_env import GomokuEnv
 from ..ai.agents import (
@@ -88,22 +89,26 @@ def train_q_vs_heuristics(
         remaining = episodes_per_phase
         early_stop = False
 
-        # check_interval ごとに学習を行い、勝率の伸びを逐次確認する
-        while remaining > 0:
-            cur_eps = min(check_interval, remaining)
-            remaining -= cur_eps
+        # フェーズ中は同じプロセスプールを使い回すことで生成コストを抑える
+        # with ブロックを抜けると自動で close される
+        with multiprocessing.get_context("spawn").Pool(num_workers) as pool:
+            # check_interval ごとに学習を行い、勝率の伸びを逐次確認する
+            while remaining > 0:
+                cur_eps = min(check_interval, remaining)
+                remaining -= cur_eps
 
-            q_agent, rewards, winners, _ = train_master_q(
-                total_episodes=cur_eps,
-                batch_size=max(1, cur_eps // num_workers),
-                board_size=board_size,
-                num_workers=num_workers,
-                agent_params=agent_params,
-                env_params=env_params,
-                opponent_class=opp,
-                show_progress=show_progress,
-                q_agent=q_agent,
-            )
+                q_agent, rewards, winners, _ = train_master_q(
+                    total_episodes=cur_eps,
+                    batch_size=max(1, cur_eps // num_workers),
+                    board_size=board_size,
+                    num_workers=num_workers,
+                    agent_params=agent_params,
+                    env_params=env_params,
+                    opponent_class=opp,
+                    show_progress=show_progress,
+                    q_agent=q_agent,
+                    pool=pool,  # プールを共有して無駄な生成を避ける
+                )
 
             win_rate = sum(1 for w in winners if w == 1) / len(winners)
             avg_reward = sum(rewards) / len(rewards)
@@ -126,6 +131,7 @@ def train_q_vs_heuristics(
                             return q_agent, opp()
                     break
 
+        # with ブロックを抜けるとここでプールが自動的に解放される
         final_win = phase_win_rates[-1] if phase_win_rates else 0.0
 
         # --- フェーズ終了後の学習停止判定 ---------------------------

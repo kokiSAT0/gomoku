@@ -20,6 +20,8 @@ from .policy_agent import (
 
 # DQN エージェント関連
 from .q_agent import (
+    FCQNet,
+    ConvQNet,
     QNet,
     QAgent,
 )
@@ -33,6 +35,8 @@ __all__ = [
     "PolicyNet",
     "ConvPolicyNet",
     "PolicyAgent",
+    "FCQNet",
+    "ConvQNet",
     "QNet",
     "QAgent",
 ]

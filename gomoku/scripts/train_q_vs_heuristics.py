@@ -209,11 +209,17 @@ def main() -> None:
         default=DEFAULT_CHECK_INTERVAL,
         help="勝率確認を行うエピソード間隔",
     )
+    parser.add_argument(
+        "--network-type",
+        choices=["fc", "conv"],
+        default="fc",
+        help="QAgent のネットワーク形式",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-    agent_params = {"device": device}
+    agent_params = {"device": device, "network_type": args.network_type}
 
     q_agent, last_opponent = train_q_vs_heuristics(
         episodes_per_phase=args.episodes,

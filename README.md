@@ -12,7 +12,7 @@
   - 即勝ち・ブロック優先などのヒューリスティックエージェント
   - 方策勾配を用いた `PolicyAgent`
     - 畳み込み型の `ConvPolicyNet` と全結合型の `PolicyNet` を選択可能
-  - DQN を用いた `QAgent`
+  - DQN を用いた `QAgent` (全結合版と畳み込み版を選択可能)
 - `gomoku/scripts` には GUI 対戦やモデル学習、評価、並列学習などのスクリプトを用意
 - 学習曲線などの画像は `figures/` フォルダに出力
 - 学習済みモデルは容量削減のためリポジトリに含まれていません。必要に応じて個別にダウンロードしてください。
@@ -88,7 +88,8 @@ python -m gomoku.scripts.evaluate_models
 全結合ネットワークで学習したモデルを評価する場合は
 `network_type="dense"` を引数に指定します。
 `QAgent` を評価したい場合は `--agent_type q --q_path <モデルファイル>` を
-付与してください。
+付与してください。QAgent も `--q_network_type conv` を指定することで
+畳み込み版のモデルを読み込めます。
 
 ### 5. 並列学習や総当たり戦
 
@@ -145,6 +146,8 @@ python -m gomoku.scripts.train_q_vs_heuristics --episodes 2000 --device cuda
 指定します。
 なお評価間隔は ``--check-interval`` オプションで変更可能で、
 デフォルトは 100 エピソードごととなっています。
+畳み込み型のネットワークで学習したい場合は `--network-type conv` を
+指定してください。
 
 ## 注意点
 

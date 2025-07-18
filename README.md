@@ -121,11 +121,11 @@ python -m gomoku.scripts.train_policy_mixed --episodes 2000
 相手にフェーズを区切って `QAgent` を訓練できます。
 
 ```bash
-python -m gomoku.scripts.train_q_vs_heuristics --episodes 500
+python -m gomoku.scripts.train_q_vs_heuristics --episodes 500 --device cuda
 ```
 
 勝率の伸びが小さくなった時点で学習を停止し、最後に 1 戦だけテキスト表示で
-対局結果を確認できます。
+対局結果を確認できます。GPU を利用する場合は ``--device cuda`` を指定します。
 
 ## 注意点
 

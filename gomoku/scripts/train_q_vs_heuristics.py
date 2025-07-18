@@ -11,6 +11,7 @@ parallel_q_train.train_master_q() を呼び出し、相手クラスを変えな�
 from __future__ import annotations
 
 import argparse
+import torch
 from pathlib import Path
 from typing import Type
 
@@ -49,6 +50,7 @@ def train_q_vs_heuristics(
         num_workers: 並列ワーカー数
         env_params: 環境に渡す追加パラメータ
         agent_params: エージェント作成時のパラメータ
+            ("device" キーで GPU/CPU を指定可能)
         opponent_classes: 対戦相手となるエージェントクラスのリスト
         plateau_threshold: 勝率向上が停滞したとみなす閾値
         plateau_patience: 停滞を確認する期間
@@ -120,6 +122,7 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=500, help="各フェーズのエピソード数")
     parser.add_argument("--board-size", type=int, default=9, help="盤面サイズ")
     parser.add_argument("--num-workers", type=int, default=4, help="並列ワーカー数")
+    parser.add_argument("--device", default=None, help="使用デバイス(cuda/cpu)")
     parser.add_argument(
         "--interactive",
         action="store_true",
@@ -127,11 +130,16 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+
+    agent_params = {"device": device}
+
     q_agent, last_opponent = train_q_vs_heuristics(
         episodes_per_phase=args.episodes,
         board_size=args.board_size,
         num_workers=args.num_workers,
         interactive=args.interactive,
+        agent_params=agent_params,
     )
 
     print("\n=== 学習後の対戦例 ===")
